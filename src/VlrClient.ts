@@ -6,7 +6,7 @@ import { PinoLogger } from './core/log/PinoLogger';
 import { Metrics } from './core/metrics/Metrics';
 
 // Domain service(s)
-import { UpcomingMatchService } from './services/MatchIncoming';
+import { UpcomingMatchService } from './services/UpcomingMatch';
 
 // Data contracts
 import type { Envelope } from './types.d';

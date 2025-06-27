@@ -1,3 +1,4 @@
+import * as cheerio from 'cheerio';
 import type { IHttpClient } from '../core/http/HttpClient';
 import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
 import type { ILogger } from '../core/log/ILogger';
@@ -6,14 +7,15 @@ import type { Metrics } from '../core/metrics/Metrics';
 import type { Envelope } from '../types.d';
 import type { MatchIncoming } from '../models/MatchIncoming';
 
-import { parseUpcomingMatchList } from '../parsers/match/upcomingMatchParser';
+import { UpcomingMatchParser } from '../parsers/match/UpcomingMatchParser';
 
 /**
- * Service responsible for retrieving *incoming* matches
- * (upcoming or live) from the vlr `/matches` listing.
+ * Service responsible for retrieving *incoming* matches (live or upcoming)
+ * from the `/matches` listing on vlr.gg.
  *
- * • One public method → full orchestration.
- * • Parsing delegated to a pure function for testability.
+ * The class is designed in the same fashion as {@link CompletedMatchService}:
+ *  • The service orchestrates the workflow (HTTP –> cache –> parsing –> metrics).
+ *  • The heavy DOM extraction is delegated to a dedicated parser class.
  */
 export class UpcomingMatchService {
   private readonly LISTING_URL = 'https://www.vlr.gg/matches';
@@ -26,10 +28,9 @@ export class UpcomingMatchService {
   ) {}
 
   /**
-   * Fetch the matches list and return structured data.
+   * Fetch the matches list and return the structured data.
    *
-   * @param useCache  When true and cache is enabled, re-use
-   *                  a 5-minute TTL entry to reduce load.
+   * @param useCache  Re-use the cached value (TTL 5 min) when available.
    */
   async listIncoming(useCache = true): Promise<Envelope<MatchIncoming[]>> {
     const t0 = performance.now();
@@ -41,20 +42,28 @@ export class UpcomingMatchService {
         const hit = this.cache!.get<MatchIncoming[]>(cacheKey);
         if (hit) {
           this.metrics.trackSuccess(performance.now() - t0);
-          return { data: hit, info: { ...this.metrics.report(), fromCache: true } };
+          return {
+            data: hit,
+            info: { ...this.metrics.report(), fromCache: true },
+          };
         }
       }
 
       this.log.debug('GET /matches');
       const html = await this.http.get(this.LISTING_URL);
-      const matches = parseUpcomingMatchList(html);
+      const $ = cheerio.load(html);
+      const parser = new UpcomingMatchParser($);
+      const matches = parser.parse();
 
       if (SHOULD_CACHE) {
         this.cache!.set(cacheKey, matches, 5 * 60_000); // 5 min TTL
       }
 
       this.metrics.trackSuccess(performance.now() - t0);
-      return { data: matches, info: { ...this.metrics.report(), fromCache: false } };
+      return {
+        data: matches,
+        info: { ...this.metrics.report(), fromCache: false },
+      };
     } catch (err) {
       this.metrics.trackFailure(performance.now() - t0);
       this.log.error('listIncoming failed', { err });
