@@ -1,0 +1,23 @@
+{
+  "name": "vlr-client",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun build src/VlrClient.ts --outdir dist --target node --minify",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vitest": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.0",
+    "lru-cache": "^11.1.0",
+    "pino": "^9.7.0"
+  }
+}
