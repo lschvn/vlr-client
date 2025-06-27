@@ -12,4 +12,36 @@ describe('CompletedMatchParser', () => {
     expect(result).toBeDefined();
     expect(result.id).toBe('0');
   });
+
+  it('handles completely empty HTML gracefully', () => {
+    const $ = cheerio.load('<html></html>');
+    const parser = new CompletedMatchParser($);
+    const result = parser.parse('42');
+    expect(result.id).toBe('42');
+    // Expect most strings to be empty – ensures no throw
+    expect(result.event.name).toBe('');
+    expect(result.team1.name).toBe('');
+    expect(result.team2.name).toBe('');
+  });
+
+  it('maps known data points from a partial structure', () => {
+    const partialHtml = `
+      <div class="col mod-3">
+        <div class="match-header-event">
+          <img src="//logo.png" />
+          <div><div>Test Cup</div></div>
+        </div>
+        <div class="match-header-date">
+          <div class="moment-tz-convert" data-utc-ts="123">Jan 1</div>
+          <div class="moment-tz-convert">12:00</div>
+        </div>
+      </div>`;
+    const $ = cheerio.load(partialHtml);
+    const parser = new CompletedMatchParser($);
+    const result = parser.parse('99');
+    expect(result.id).toBe('99');
+    expect(result.event.name).toContain('Test Cup');
+    expect(result.date).toBe('Jan 1');
+    expect(result.time).toBe('12:00');
+  });
 });
