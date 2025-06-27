@@ -5,7 +5,7 @@ import type { ILogger } from '../core/log/ILogger';
 import type { Metrics } from '../core/metrics/Metrics';
 
 import type { Envelope } from '../types.d';
-import type { VlrCompletedMatch } from '../models/MatchCompleted';
+import type { CompletedMatch } from '../models/MatchCompleted';
 import { CompletedMatchParser } from '../parsers/match/CompletedMatchParser';
 
 export class CompletedMatchService {
@@ -21,7 +21,7 @@ export class CompletedMatchService {
   async getById(
     matchId: string,
     useCache = true,
-  ): Promise<Envelope<VlrCompletedMatch | null>> {
+  ): Promise<Envelope<CompletedMatch | null>> {
     const t0 = performance.now();
     const url = `${this.VLR_URL}/${matchId}`;
     const cacheKey = url;
@@ -29,7 +29,7 @@ export class CompletedMatchService {
 
     try {
       if (SHOULD_CACHE) {
-        const hit = this.cache!.get<VlrCompletedMatch>(cacheKey);
+        const hit = this.cache!.get<CompletedMatch>(cacheKey);
         if (hit) {
           this.metrics.trackSuccess(performance.now() - t0);
           return {

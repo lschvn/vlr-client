@@ -1,4 +1,6 @@
-export type VlrTeamInfoCompleted = {
+import type { EventMini } from "./MatchUpcoming";
+
+export type TeamInfoCompleted = {
   name: string;
   logoUrl: string;
   link: string;
@@ -6,59 +8,52 @@ export type VlrTeamInfoCompleted = {
   score: number;
 };
 
-export type VlrPlayerStatValue = {
+export type PlayerStatValue = {
   all: string;
   attack: string;
   defense: string;
 };
 
-export type VlrPlayerStatsCompleted = {
+export type PlayerStatsCompleted = {
   name: string;
   link: string;
   agents: { iconUrl: string; name: string }[];
-  rating: VlrPlayerStatValue;
-  acs: VlrPlayerStatValue;
-  k: VlrPlayerStatValue;
-  d: VlrPlayerStatValue;
-  a: VlrPlayerStatValue;
-  kdDiff: VlrPlayerStatValue;
-  kast: VlrPlayerStatValue;
-  adr: VlrPlayerStatValue;
-  hsPercent: VlrPlayerStatValue;
-  fk: VlrPlayerStatValue;
-  fd: VlrPlayerStatValue;
-  fkDiff: VlrPlayerStatValue;
+  rating: PlayerStatValue;
+  acs: PlayerStatValue;
+  k: PlayerStatValue;
+  d: PlayerStatValue;
+  a: PlayerStatValue;
+  kdDiff: PlayerStatValue;
+  kast: PlayerStatValue;
+  adr: PlayerStatValue;
+  hsPercent: PlayerStatValue;
+  fk: PlayerStatValue;
+  fd: PlayerStatValue;
+  fkDiff: PlayerStatValue;
 };
 
-export type VlrRoundOutcome = 'defuse' | 'elim' | 'boom' | 'time' | 'unknown';
+export type RoundOutcome = 'defuse' | 'elim' | 'boom' | 'time' | 'unknown';
 
-export type VlrRound = {
+export type Round = {
   roundNum: number;
   winningTeamSide: 't' | 'ct';
-  outcome: VlrRoundOutcome;
+  outcome: RoundOutcome;
   outcomeIconUrl: string;
 };
 
-export type VlrCompletedMatchMap = {
+export type CompletedMatchMap = {
   name: string;
   duration: string;
   team1Score: number;
   team2Score: number;
   team1SideStats: { attack: number; defense: number };
   team2SideStats: { attack: number; defense: number };
-  rounds: VlrRound[];
-  team1Stats: VlrPlayerStatsCompleted[];
-  team2Stats: VlrPlayerStatsCompleted[];
+  rounds: Round[];
+  team1Stats: PlayerStatsCompleted[];
+  team2Stats: PlayerStatsCompleted[];
 };
 
-export type VlrEventInfo = {
-  name: string;
-  series: string;
-  link: string;
-  imageUrl: string;
-};
-
-export type VlrPastMatch = {
+export type PastMatch = {
   opponentName: string;
   opponentLogoUrl: string;
   result: string; // e.g. "1-2"
@@ -67,28 +62,28 @@ export type VlrPastMatch = {
   win: boolean;
 };
 
-export type VlrHeadToHead = {
+export type HeadToHead = {
   result: string; // e.g. "2-1"
   link: string;
   date: string;
   win: boolean;
 };
 
-export type VlrCompletedMatch = {
+export type CompletedMatch = {
   id: string;
-  event: VlrEventInfo;
+  event: Partial<EventMini>;
   date: string;
   time: string;
   utcTimestamp: string;
   patch: string;
-  team1: VlrTeamInfoCompleted;
-  team2: VlrTeamInfoCompleted;
+  team1: TeamInfoCompleted;
+  team2: TeamInfoCompleted;
   status: 'final';
   bestOf: string;
   streams: { name: string; link: string }[];
   vods: { name: string; link: string }[];
-  maps: VlrCompletedMatchMap[];
-  head2head: VlrHeadToHead[];
-  pastMatchesTeam1: VlrPastMatch[];
-  pastMatchesTeam2: VlrPastMatch[];
+  maps: CompletedMatchMap[];
+  head2head: HeadToHead[];
+  pastMatchesTeam1: PastMatch[];
+  pastMatchesTeam2: PastMatch[];
 }; 

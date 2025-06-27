@@ -1,10 +1,11 @@
 import * as cheerio from 'cheerio';
-import type { CheerioAPI, Element } from 'cheerio';
-import type { MatchIncoming, TeamMini, EventMini } from '../../models/MatchIncoming';
+import type { CheerioAPI } from 'cheerio';
+import type { Element } from 'domhandler';
+import type { MatchUpcoming, TeamMini, EventMini } from '../../models/MatchUpcoming';
 
 /**
  * Parser converting the raw HTML retrieved from `/matches` into an
- * array of structured {@link MatchIncoming} objects.
+ * array of structured {@link MatchUpcoming} objects.
  *
  * The constructor receives a pre-initialised Cheerio instance so that the
  * caller owns the responsibility of loading / caching the document.
@@ -16,8 +17,8 @@ export class UpcomingMatchParser {
   /**
    * Parse the loaded DOM and return the list of upcoming / live matches.
    */
-  public parse(): MatchIncoming[] {
-    const matches: MatchIncoming[] = [];
+  public parse(): MatchUpcoming[] {
+    const matches: MatchUpcoming[] = [];
 
     // The list is grouped by day: a date label comes first, followed by a
     // `.wf-card` that contains every match scheduled for that date.

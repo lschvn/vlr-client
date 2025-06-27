@@ -1,14 +1,15 @@
 import * as cheerio from 'cheerio';
-import type { CheerioAPI, Element } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
+import type { Element } from 'domhandler';
 import type {
-  VlrCompletedMatch,
-  VlrCompletedMatchMap,
-  VlrHeadToHead,
-  VlrPastMatch,
-  VlrPlayerStatsCompleted,
-  VlrPlayerStatValue,
-  VlrRound,
-  VlrRoundOutcome,
+  CompletedMatch,
+  CompletedMatchMap,
+  HeadToHead,
+  PastMatch,
+  PlayerStatsCompleted,
+  PlayerStatValue,
+  Round,
+  RoundOutcome,
 } from '../../models/MatchCompleted';
 
 const VLR_URL = 'https://www.vlr.gg';
@@ -16,7 +17,7 @@ const VLR_URL = 'https://www.vlr.gg';
 export class CompletedMatchParser {
   constructor(private readonly $: CheerioAPI) {}
 
-  public parse(matchId: string): VlrCompletedMatch {
+  public parse(matchId: string): CompletedMatch {
     const mainContainer = this.$('.col.mod-3');
 
     const eventNameElement = mainContainer.find('.match-header-event > div > div');
@@ -115,9 +116,9 @@ export class CompletedMatchParser {
     };
   }
 
-  private parsePastMatches(): { team1: VlrPastMatch[]; team2: VlrPastMatch[] } {
-    const team1: VlrPastMatch[] = [];
-    const team2: VlrPastMatch[] = [];
+  private parsePastMatches(): { team1: PastMatch[]; team2: PastMatch[] } {
+    const team1: PastMatch[] = [];
+    const team2: PastMatch[] = [];
     const histories = this.$('.match-histories');
     histories.first().find('a.match-histories-item').each((_: number, el: Element) => {
       const $el = this.$(el);
@@ -130,7 +131,7 @@ export class CompletedMatchParser {
     return { team1, team2 };
   }
 
-  private extractPastMatch($el: cheerio.Cheerio<Element>): VlrPastMatch {
+  private extractPastMatch($el: cheerio.Cheerio<Element>): PastMatch {
     const opponentName = $el.find('.match-histories-item-opponent-name').text().trim();
     const opponentLogoUrl = 'https:' + $el.find('.match-histories-item-opponent-logo').attr('src');
     const result = `${$el.find('.rf').text().trim()}-${$el.find('.ra').text().trim()}`;
@@ -140,8 +141,8 @@ export class CompletedMatchParser {
     return { opponentName, opponentLogoUrl, result, link, date, win };
   }
 
-  private parseHeadToHead(): VlrHeadToHead[] {
-    const h2h: VlrHeadToHead[] = [];
+  private parseHeadToHead(): HeadToHead[] {
+    const h2h: HeadToHead[] = [];
     this.$('.match-h2h-matches a').each((_: number, el: Element) => {
       const $el = this.$(el);
       const scores = $el.find('.match-h2h-matches-score .rf');
@@ -158,8 +159,8 @@ export class CompletedMatchParser {
     return h2h;
   }
 
-  private parseCompletedMatchMaps(): VlrCompletedMatchMap[] {
-    const maps: VlrCompletedMatchMap[] = [];
+  private parseCompletedMatchMaps(): CompletedMatchMap[] {
+    const maps: CompletedMatchMap[] = [];
     this.$('.vm-stats-game[data-game-id]').each((_: number, el: Element) => {
       const gameId = this.$(el).data('game-id');
       if (gameId === 'all') return;
@@ -176,8 +177,8 @@ export class CompletedMatchParser {
       const team2SideStats = { attack: parseInt(statsSpans2.first().text().trim(), 10), defense: parseInt(statsSpans2.last().text().trim(), 10) };
       const rounds = this.parseRounds(el);
       const tables = this.$(el).find('table.wf-table-inset.mod-overview');
-      const team1Stats: VlrPlayerStatsCompleted[] = [];
-      const team2Stats: VlrPlayerStatsCompleted[] = [];
+      const team1Stats: PlayerStatsCompleted[] = [];
+      const team2Stats: PlayerStatsCompleted[] = [];
       tables.first().find('tbody tr').each((_: number, row: Element) => {
         team1Stats.push(this.parsePlayerStatsCompleted(row));
       });
@@ -189,8 +190,8 @@ export class CompletedMatchParser {
     return maps;
   }
 
-  private parseRounds(mapContainer: any): VlrRound[] {
-    const rounds: VlrRound[] = [];
+  private parseRounds(mapContainer: any): Round[] {
+    const rounds: Round[] = [];
     this.$(mapContainer).find('.vlr-rounds-row-col').each((_: number, roundEl: Element) => {
       const roundNumText = this.$(roundEl).find('.rnd-num').text().trim();
       if (!roundNumText) return;
@@ -199,20 +200,20 @@ export class CompletedMatchParser {
       const winningTeamSide = winSideEl.hasClass('mod-ct') ? 'ct' : 't';
       const outcomeIcon = winSideEl.find('img').attr('src') || '';
       const outcomeMatch = outcomeIcon.match(/round\/(\w+)\.webp/);
-      const outcome = (outcomeMatch ? outcomeMatch[1] : 'unknown') as VlrRoundOutcome;
+      const outcome = (outcomeMatch ? outcomeMatch[1] : 'unknown') as RoundOutcome;
       rounds.push({ roundNum, winningTeamSide, outcome, outcomeIconUrl: VLR_URL + outcomeIcon });
     });
     return rounds;
   }
 
-  private parsePlayerStatsCompleted(playerRow: any): VlrPlayerStatsCompleted {
-    const getStat = (index: number): VlrPlayerStatValue => ({
+  private parsePlayerStatsCompleted(playerRow: any): PlayerStatsCompleted {
+    const getStat = (index: number): PlayerStatValue => ({
       all: this.$(playerRow).find('.mod-stat').eq(index).find('.side.mod-side.mod-both').text().trim(),
       attack: this.$(playerRow).find('.mod-stat').eq(index).find('.side.mod-side.mod-t').text().trim(),
       defense: this.$(playerRow).find('.mod-stat').eq(index).find('.side.mod-side.mod-ct').text().trim(),
     });
 
-    const getKDAStat = (className: string): VlrPlayerStatValue => ({
+    const getKDAStat = (className: string): PlayerStatValue => ({
       all: this.$(playerRow).find(className).find('.side.mod-both').text().trim(),
       attack: this.$(playerRow).find(className).find('.side.mod-t').text().trim(),
       defense: this.$(playerRow).find(className).find('.side.mod-ct').text().trim(),

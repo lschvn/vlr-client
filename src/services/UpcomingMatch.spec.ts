@@ -6,7 +6,7 @@ import type { IHttpClient } from '../core/http/HttpClient';
 import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
 import type { ILogger } from '../core/log/ILogger';
 import { Metrics } from '../core/metrics/Metrics';
-import type { MatchIncoming } from '../models/MatchIncoming';
+import type { MatchUpcoming } from '../models/MatchUpcoming';
 
 import { UpcomingMatchService } from './UpcomingMatch';
 
@@ -83,14 +83,14 @@ describe('UpcomingMatchService', () => {
 
     // Data is parsed
     expect(envelope.data.length).toBeGreaterThan(0);
-    const first: MatchIncoming = envelope.data[0]!;
+    const first: MatchUpcoming = envelope.data[0]!;
     expect(first.id).toBe('509209');
 
     // Returned info
     expect(envelope.info.fromCache).toBe(false);
 
     // Cache now contains parsed data
-    const cached = cache.get<MatchIncoming[]>('https://www.vlr.gg/matches');
+    const cached = cache.get<MatchUpcoming[]>('https://www.vlr.gg/matches');
     expect(cached?.length).toBe(envelope.data.length);
   });
 

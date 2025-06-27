@@ -5,7 +5,7 @@ import type { ILogger } from '../core/log/ILogger';
 import type { Metrics } from '../core/metrics/Metrics';
 
 import type { Envelope } from '../types.d';
-import type { MatchIncoming } from '../models/MatchIncoming';
+import type { MatchUpcoming } from '../models/MatchUpcoming';
 
 import { UpcomingMatchParser } from '../parsers/match/UpcomingMatchParser';
 
@@ -32,14 +32,14 @@ export class UpcomingMatchService {
    *
    * @param useCache  Re-use the cached value (TTL 5 min) when available.
    */
-  async listIncoming(useCache = true): Promise<Envelope<MatchIncoming[]>> {
+  async listIncoming(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
     const t0 = performance.now();
     const cacheKey = `${this.LISTING_URL}`;
     const SHOULD_CACHE = Boolean(useCache && this.cache);
 
     try {
       if (SHOULD_CACHE) {
-        const hit = this.cache!.get<MatchIncoming[]>(cacheKey);
+        const hit = this.cache!.get<MatchUpcoming[]>(cacheKey);
         if (hit) {
           this.metrics.trackSuccess(performance.now() - t0);
           return {

@@ -7,10 +7,12 @@ import { Metrics } from './core/metrics/Metrics';
 
 // Domain service(s)
 import { UpcomingMatchService } from './services/UpcomingMatch';
+import { CompletedMatchService } from './services/MatchCompleted';
 
 // Data contracts
 import type { Envelope } from './types.d';
-import type { MatchIncoming } from './models/MatchIncoming';
+import type { MatchUpcoming } from './models/MatchUpcoming';
+import type { CompletedMatch } from './models/MatchCompleted';
 
 
 export interface VlrClientOptions {
@@ -33,6 +35,7 @@ export class VlrClient {
 
   /* Domain-level services */
   private readonly upcomingSvc: UpcomingMatchService;
+  private readonly completedSvc: CompletedMatchService;
 
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
@@ -49,14 +52,24 @@ export class VlrClient {
       this.logger.child({ svc: 'incoming' }),
       this.metrics,
     );
+    this.completedSvc = new CompletedMatchService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'completed' }),
+      this.metrics,
+    );
   }
 
   /**
    * Retrieve the list of matches that are either *live* or *upcoming*.
-   * See {@link MatchIncoming} for the returned data structure.
+   * See {@link MatchUpcoming} for the returned data structure.
    */
-  listIncomingMatches(useCache = true): Promise<Envelope<MatchIncoming[]>> {
+  listIncomingMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
     return this.upcomingSvc.listIncoming(useCache);
+  }
+
+  getCompletedMatch(matchId: string): Promise<Envelope<CompletedMatch | null>> {
+    return this.completedSvc.getById(matchId);
   }
 
   /** Return the current aggregated metrics snapshot. */
