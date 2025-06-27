@@ -12,7 +12,7 @@
     "@types/bun": "latest",
     "@types/cheerio": "^1.0.0",
     "@types/node": "^20.19.1",
-    "vitest": "latest"
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "typescript": "^5"
