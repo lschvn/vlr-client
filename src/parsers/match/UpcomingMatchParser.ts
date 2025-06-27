@@ -1,4 +1,5 @@
-import type { CheerioAPI, Element } from 'cheerio';
+import * as cheerio from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
 import type { MatchIncoming, TeamMini, EventMini } from '../../models/MatchIncoming';
 
 /**
@@ -25,7 +26,7 @@ export class UpcomingMatchParser {
 
     // Target the main column and iterate over its direct children which are
     // either date labels (`.wf-label`) or match containers (`.wf-card`).
-    this.$('.col.mod-1 > div').each((_: number, element: Element) => {
+    this.$('.col.mod-1 > div').each((_: number, element: any) => {
       const el = this.$(element);
 
       // Update `currentDate` every time we encounter a date label.
@@ -37,7 +38,7 @@ export class UpcomingMatchParser {
 
       // A `.wf-card` node contains one or more `<a>` tags, each representing a match.
       if (el.hasClass('wf-card')) {
-        el.find('a.match-item').each((_: number, matchElement: Element) => {
+        el.find('a.match-item').each((_: number, matchElement: any) => {
           const matchEl = this.$(matchElement);
 
           // 1. Extract match ID and URL
@@ -56,14 +57,14 @@ export class UpcomingMatchParser {
           // 4. Extract team information
           const teamElements = matchEl.find('.match-item-vs-team');
           const teams = teamElements
-            .map((_: number, teamEl: Element) => {
+            .map((_: number, teamEl: any) => {
               const teamNode = this.$(teamEl);
 
               const name = teamNode.find('.match-item-vs-team-name .text-of').text().trim() || 'TBD';
 
               // Country code is encoded in the flag class (e.g. "flag mod-de")
               const flagClass = teamNode.find('.flag').attr('class') || '';
-              const countryCode = flagClass.split(' ').find((c: string) => c.startsWith('mod-'))?.replace('mod-', '') || 'un';
+              const countryCode = flagClass.split(' ').find((c: string) => c.startsWith('mod-'))?.replace('mod-', '') ?? 'un';
 
               const scoreText = teamNode.find('.match-item-vs-team-score').text().trim();
               // Score is a number when present, otherwise null.
