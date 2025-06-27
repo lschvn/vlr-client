@@ -6,7 +6,7 @@ import type { Metrics } from '../core/metrics/Metrics';
 
 import type { Envelope } from '../types.d';
 import type { VlrCompletedMatch } from '../models/MatchCompleted';
-import { CompletedMatchParser } from '../parsers/match/completedMatchParser';
+import { CompletedMatchParser } from '../parsers/match/CompletedMatchParser';
 
 export class CompletedMatchService {
   private readonly VLR_URL = 'https://www.vlr.gg';
