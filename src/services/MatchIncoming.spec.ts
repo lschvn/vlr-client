@@ -8,7 +8,7 @@ import type { ILogger } from '../core/log/ILogger';
 import { Metrics } from '../core/metrics/Metrics';
 import type { MatchIncoming } from '../models/MatchIncoming';
 
-import { UpcomingMatchService } from './MatchIncoming';
+import { UpcomingMatchService } from './UpcomingMatch';
 
 /* ------------------------------------------------------------------------- *
  * Test doubles (very lightweight – sufficient for unit-tests).

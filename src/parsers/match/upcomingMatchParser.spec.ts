@@ -1,17 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-import { parseUpcomingMatchList } from './upcomingMatchParser';
+import * as cheerio from 'cheerio';
+import { UpcomingMatchParser } from './UpcomingMatchParser';
 
 // ---------------------------------------------------------------------------
 // Load fixture HTML once for the entire test-suite.
 // ---------------------------------------------------------------------------
 const fixturePath = join(__dirname, 'fixtures', 'upcomingMatchFixture.html');
 const fixtureHtml = readFileSync(fixturePath, 'utf8');
-const parsed = parseUpcomingMatchList(fixtureHtml);
+const $ = cheerio.load(fixtureHtml);
+const parser = new UpcomingMatchParser($);
+const parsed = parser.parse();
 
-describe('parseUpcomingMatchList', () => {
+describe('UpcomingMatchParser.parse', () => {
   it('should return at least one match', () => {
     expect(parsed.length).toBeGreaterThan(0);
   });
