@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { MatchIncoming, TeamMini, EventMini } from '../../models/MatchIncoming';
+import type { Element } from 'domhandler';
 
 /**
  * Parser converting the raw HTML retrieved from `/matches` into an
@@ -26,7 +27,7 @@ export class UpcomingMatchParser {
 
     // Target the main column and iterate over its direct children which are
     // either date labels (`.wf-label`) or match containers (`.wf-card`).
-    this.$('.col.mod-1 > div').each((_: number, element: any) => {
+    this.$('.col.mod-1 > div').each((_: number, element: Element) => {
       const el = this.$(element);
 
       // Update `currentDate` every time we encounter a date label.
@@ -38,7 +39,7 @@ export class UpcomingMatchParser {
 
       // A `.wf-card` node contains one or more `<a>` tags, each representing a match.
       if (el.hasClass('wf-card')) {
-        el.find('a.match-item').each((_: number, matchElement: any) => {
+        el.find('a.match-item').each((_: number, matchElement: Element) => {
           const matchEl = this.$(matchElement);
 
           // 1. Extract match ID and URL
@@ -57,7 +58,7 @@ export class UpcomingMatchParser {
           // 4. Extract team information
           const teamElements = matchEl.find('.match-item-vs-team');
           const teams = teamElements
-            .map((_: number, teamEl: any) => {
+            .map((_: number, teamEl: Element) => {
               const teamNode = this.$(teamEl);
 
               const name = teamNode.find('.match-item-vs-team-name .text-of').text().trim() || 'TBD';
