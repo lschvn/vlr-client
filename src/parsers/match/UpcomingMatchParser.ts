@@ -1,7 +1,6 @@
 import * as cheerio from 'cheerio';
-import type { CheerioAPI } from 'cheerio';
+import type { CheerioAPI, Element } from 'cheerio';
 import type { MatchIncoming, TeamMini, EventMini } from '../../models/MatchIncoming';
-import type { Element } from 'domhandler';
 
 /**
  * Parser converting the raw HTML retrieved from `/matches` into an
