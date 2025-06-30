@@ -32,9 +32,15 @@ export class CompletedMatchParser {
     // </div>
     // ---------------------------------------------------------------------
     const eventSeriesEl = mainContainer.find('.match-header-event-series');
-    const series = eventSeriesEl.text().trim().replace(/\s+/g, ' ');
-    // The event name is the first <div> inside the wrapper (sibling of series)
-    const eventName = eventSeriesEl.prev().text().trim().replace(/\s+/g, ' ');
+    let series = '', eventName = '';
+    if (eventSeriesEl.length) {
+      series = eventSeriesEl.text().trim().replace(/\s+/g, ' ');
+      eventName = eventSeriesEl.prev().text().trim().replace(/\s+/g, ' ');
+    } else {
+      // Fallback for minimal/partial HTML (tests) – take first div text inside event wrapper
+      const nameCandidate = mainContainer.find('.match-header-event > div > div').first();
+      eventName = nameCandidate.text().trim().replace(/\s+/g, ' ');
+    }
     const event = {
       name: eventName,
       series,
