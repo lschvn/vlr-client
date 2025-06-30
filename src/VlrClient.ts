@@ -63,7 +63,7 @@ export class VlrClient {
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
     this.logger = opts.logger ?? new PinoLogger();
-    this.http = opts.httpClient ?? new HttpClient();
+    this.http = opts.httpClient ?? new HttpClient(this.logger);
     this.cache = opts.cache
       ? new MemoryLRU({ ttl: opts.cacheTTL })
       : undefined;
