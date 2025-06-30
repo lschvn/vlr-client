@@ -4,6 +4,7 @@ node_modules
 .cursor
 
 playground.ts
+data.json
 
 # output
 out
