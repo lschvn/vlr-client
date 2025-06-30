@@ -1,6 +1,6 @@
 # VLR.gg Unofficial API
 
-A simple, lightweight, and dependency-free TypeScript scraper for [VLR.gg](https://www.vlr.gg/), providing structured data for matches, teams, and players.
+A simple, and lightweight TypeScript scraper for [VLR.gg](https://www.vlr.gg/), providing structured data for matches, teams, and players.
 
 ## Features
 
