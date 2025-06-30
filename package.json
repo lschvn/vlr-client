@@ -1,10 +1,10 @@
 {
   "name": "vlr-client",
-  "module": "index.ts",
+  "module": "src/VlrClient.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build src/VlrClient.ts --outdir dist --target node --minify",
+    "build": "bun build src/VlrClient.ts --outdir dist --target node --target bun --target browser",
     "test": "vitest run",
     "test:watch": "vitest"
   },
