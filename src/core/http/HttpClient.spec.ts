@@ -9,6 +9,8 @@ describe('HttpClient', () => {
   /** Reset the global fetch mock before every test */
   beforeEach(() => {
     // @ts-ignore – we overwrite global fetch with a vi.fn()
+    // Bun <1.2.14 ne dispose pas de vi.mock; on remplace donc directement
+    // la fonction globale fetch par un stub créé avec vi.fn().
     global.fetch = vi.fn((url: string, init?: RequestInit) => {
       // Helper to build a never-resolving promise that rejects on abort.
       const neverResolving = (signal?: AbortSignal | null) =>
