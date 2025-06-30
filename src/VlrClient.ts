@@ -9,12 +9,14 @@ import { Metrics } from './core/metrics/Metrics';
 import { UpcomingMatchService } from './services/UpcomingMatch';
 import { CompletedMatchService } from './services/MatchCompleted';
 import { TeamService } from './services/TeamService';
+import { SearchService } from './services/SearchService';
 
 // Data contracts
 import type { Envelope } from './types.d';
 import type { MatchUpcoming } from './models/MatchUpcoming';
 import type { CompletedMatch } from './models/MatchCompleted';
 import type { Team } from './models/Team';
+import type { SearchCategory, SearchResult } from './models/Search';
 
 
 export interface VlrClientOptions {
@@ -61,6 +63,7 @@ export class VlrClient {
   private readonly upcomingSvc: UpcomingMatchService;
   private readonly completedSvc: CompletedMatchService;
   private readonly teamSvc: TeamService;
+  private readonly searchSvc: SearchService;
 
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
@@ -89,6 +92,12 @@ export class VlrClient {
       this.logger.child({ svc: 'team' }),
       this.metrics,
     );
+    this.searchSvc = new SearchService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'search' }),
+      this.metrics,
+    );
 
   }
 
@@ -114,6 +123,17 @@ export class VlrClient {
    */
   async getTeamById(id: string): Promise<Envelope<Team | null>> {
     return await this.teamSvc.getById(id);
+  }
+
+  /**
+   * Search for teams, players, events, etc.
+   * See {@link SearchResult} for the returned data structure.
+   */
+  async search(
+    query: string,
+    category: SearchCategory = 'all'
+  ): Promise<Envelope<SearchResult[]>> {
+    return await this.searchSvc.getResults(query, category);
   }
 
   /** Return the current aggregated metrics snapshot. */
