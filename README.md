@@ -1,4 +1,4 @@
-# VLR.gg Unofficial API
+# VLR Client
 
 A simple, and lightweight TypeScript scraper for [VLR.gg](https://www.vlr.gg/), providing structured data for matches, teams, and players.
 
@@ -15,7 +15,7 @@ A simple, and lightweight TypeScript scraper for [VLR.gg](https://www.vlr.gg/), 
 ## Installation
 
 ```bash
-npm install vlr-gg-api
+npm install vlr-client
 ```
 _Note: This package is not yet published to npm. This is a placeholder._
 
@@ -24,7 +24,7 @@ _Note: This package is not yet published to npm. This is a placeholder._
 All methods are available through the `VlrClient` instance.
 
 ```typescript
-import { VlrClient } from 'vlr-gg-api';
+import { VlrClient } from 'vlr-client';
 
 const vlr = new VlrClient();
 ```
@@ -87,17 +87,6 @@ Retrieve the details, stats, and history for a specific player.
 ```typescript
 const { data: player } = await vlr.getPlayerById('5654'); // Avez
 console.log(player);
-```
-
-### Search
-
-#### `search(query: string, category?: SearchCategory): Promise<Envelope<SearchResult[]>>`
-
-Search for teams, players, or events. The `category` parameter is optional and can be one of `'all'`, `'teams'`, `'players'`, `'events'`, `'series'`.
-
-```typescript
-const { data: searchResults } = await vlr.search('Karmine Corp', 'teams');
-console.log(searchResults);
 ```
 
 ## Contributing
