@@ -12,6 +12,7 @@ import { TeamService } from './services/TeamService';
 import { SearchService } from './services/SearchService';
 import { TeamMatchesService } from './services/TeamMatchesService';
 import { TeamTransactionService } from './services/TeamTransactionService';
+import { PlayerService } from './services/PlayerService';
 
 // Data contracts
 import type { Envelope } from './types.d';
@@ -21,6 +22,7 @@ import type { Team } from './models/Team';
 import type { SearchCategory, SearchResult } from './models/Search';
 import type { TeamMatch } from './models/TeamMatch';
 import type { TeamTransaction } from './models/TeamTransaction';
+import type { Player } from './models/Player';
 
 
 export interface VlrClientOptions {
@@ -53,6 +55,10 @@ export interface VlrClientOptions {
  * @method getTeamMatches - Retrieve the list of matches for a team.
  * @method getTeamById - Retrieve the details of a team.
  * 
+ * @method getTeamTransactions - Retrieve the list of transactions for a team.
+ * 
+ * @method getPlayerById - Retrieve the details of a player.
+ * 
  * @method search - Search for teams, players, events, etc.
  * 
  * @method getMetrics - Return the current aggregated metrics snapshot.
@@ -72,6 +78,7 @@ export class VlrClient {
   private readonly searchSvc: SearchService;
   private readonly teamMatchesSvc: TeamMatchesService;
   private readonly teamTransactionSvc: TeamTransactionService;
+  private readonly playerSvc: PlayerService;
 
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
@@ -118,6 +125,12 @@ export class VlrClient {
       this.logger.child({ svc: 'team-transaction' }),
       this.metrics,
     );
+    this.playerSvc = new PlayerService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'player' }),
+      this.metrics,
+    );
   }
 
   /**
@@ -158,6 +171,14 @@ export class VlrClient {
    */
   async getTeamTransactions(teamId: string): Promise<Envelope<TeamTransaction[]>> {
     return await this.teamTransactionSvc.getByTeamId(teamId);
+  }
+
+  /**
+   * Retrieve the details of a player.
+   * See {@link Player} for the returned data structure.
+   */
+  async getPlayerById(playerId: string): Promise<Envelope<Player | null>> {
+    return await this.playerSvc.getById(playerId);
   }
 
   /**
