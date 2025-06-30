@@ -11,6 +11,7 @@ import { CompletedMatchService } from './services/MatchCompleted';
 import { TeamService } from './services/TeamService';
 import { SearchService } from './services/SearchService';
 import { TeamMatchesService } from './services/TeamMatchesService';
+import { TeamTransactionService } from './services/TeamTransactionService';
 
 // Data contracts
 import type { Envelope } from './types.d';
@@ -19,6 +20,7 @@ import type { CompletedMatch } from './models/MatchCompleted';
 import type { Team } from './models/Team';
 import type { SearchCategory, SearchResult } from './models/Search';
 import type { TeamMatch } from './models/TeamMatch';
+import type { TeamTransaction } from './models/TeamTransaction';
 
 
 export interface VlrClientOptions {
@@ -44,8 +46,9 @@ export interface VlrClientOptions {
  * 
  * @see {@link VlrClientOptions} for configuration options.
  * 
- * @method getIncomingMatches - Retrieve the list of matches that are either *live* or *upcoming*.
+ * @method getUpcomingMatches - Retrieve the list of matches that are either *live* or *upcoming*.
  * @method getCompletedMatch - Retrieve the details of a completed match.
+ * @method getLiveMatch - Retrieve the details of a live match.
  * 
  * @method getTeamMatches - Retrieve the list of matches for a team.
  * @method getTeamById - Retrieve the details of a team.
@@ -68,6 +71,7 @@ export class VlrClient {
   private readonly teamSvc: TeamService;
   private readonly searchSvc: SearchService;
   private readonly teamMatchesSvc: TeamMatchesService;
+  private readonly teamTransactionSvc: TeamTransactionService;
 
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
@@ -108,14 +112,19 @@ export class VlrClient {
       this.logger.child({ svc: 'team-matches' }),
       this.metrics,
     );
-
+    this.teamTransactionSvc = new TeamTransactionService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'team-transaction' }),
+      this.metrics,
+    );
   }
 
   /**
    * Retrieve the list of matches that are either *live* or *upcoming*.
    * See {@link MatchUpcoming} for the returned data structure.
    */
-  async getIncomingMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
+  async getUpcomingMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
     return await this.upcomingSvc.listIncoming(useCache);
   }
 
@@ -141,6 +150,14 @@ export class VlrClient {
    */
   async getTeamMatches(teamId: string): Promise<Envelope<TeamMatch[]>> {
     return await this.teamMatchesSvc.getByTeamId(teamId);
+  }
+
+  /**
+   * Retrieve the list of transactions for a team.
+   * See {@link TeamTransaction} for the returned data structure.
+   */
+  async getTeamTransactions(teamId: string): Promise<Envelope<TeamTransaction[]>> {
+    return await this.teamTransactionSvc.getByTeamId(teamId);
   }
 
   /**
