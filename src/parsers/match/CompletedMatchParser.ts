@@ -63,9 +63,10 @@ export class CompletedMatchParser {
       .find('.match-header-vs-score .js-spoiler')
       .text()
       .replace(/\s+/g, ''); // e.g. "0:2"
-    const [leftScoreStr, rightScoreStr] = scoreTextRaw.split(':');
-    const leftScore = parseInt(leftScoreStr, 10);
-    const rightScore = parseInt(rightScoreStr, 10);
+
+    const scoreParts = scoreTextRaw.split(':');
+    const leftScore = parseInt(scoreParts[0] || '0', 10);
+    const rightScore = parseInt(scoreParts[1] || '0', 10);
 
     const teamLeft = {
       name: mainContainer.find('.match-header-link-name.mod-1 .wf-title-med').text().trim(),

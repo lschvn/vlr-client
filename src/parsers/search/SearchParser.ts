@@ -21,6 +21,7 @@ export class SearchParser {
 
       const type = urlParts[0] as SearchResult['type'];
       const id = urlParts[1];
+      if (!id) return;
       const name = this.cleanText(item.find('.search-item-title').text());
       const imageUrl = item.find('img').attr('src') || '';
       const description =
