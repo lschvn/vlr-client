@@ -10,6 +10,7 @@ import { UpcomingMatchService } from './services/UpcomingMatch';
 import { CompletedMatchService } from './services/MatchCompleted';
 import { TeamService } from './services/TeamService';
 import { SearchService } from './services/SearchService';
+import { TeamMatchesService } from './services/TeamMatchesService';
 
 // Data contracts
 import type { Envelope } from './types.d';
@@ -17,6 +18,7 @@ import type { MatchUpcoming } from './models/MatchUpcoming';
 import type { CompletedMatch } from './models/MatchCompleted';
 import type { Team } from './models/Team';
 import type { SearchCategory, SearchResult } from './models/Search';
+import type { TeamMatch } from './models/TeamMatch';
 
 
 export interface VlrClientOptions {
@@ -46,8 +48,9 @@ export interface VlrClientOptions {
  * @method getCompletedMatch - Retrieve the details of a completed match.
  * 
  * @method getTeamMatches - Retrieve the list of matches for a team.
- * @method getTeamBySlug - Retrieve the details of a team.
  * @method getTeamById - Retrieve the details of a team.
+ * 
+ * @method search - Search for teams, players, events, etc.
  * 
  * @method getMetrics - Return the current aggregated metrics snapshot.
  * @method clearCache - Wipe every entry from the in-memory cache (if enabled).
@@ -64,6 +67,7 @@ export class VlrClient {
   private readonly completedSvc: CompletedMatchService;
   private readonly teamSvc: TeamService;
   private readonly searchSvc: SearchService;
+  private readonly teamMatchesSvc: TeamMatchesService;
 
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
@@ -98,6 +102,12 @@ export class VlrClient {
       this.logger.child({ svc: 'search' }),
       this.metrics,
     );
+    this.teamMatchesSvc = new TeamMatchesService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'team-matches' }),
+      this.metrics,
+    );
 
   }
 
@@ -123,6 +133,14 @@ export class VlrClient {
    */
   async getTeamById(id: string): Promise<Envelope<Team | null>> {
     return await this.teamSvc.getById(id);
+  }
+
+  /**
+   * Retrieve the list of matches for a team.
+   * See {@link TeamMatch} for the returned data structure.
+   */
+  async getTeamMatches(teamId: string): Promise<Envelope<TeamMatch[]>> {
+    return await this.teamMatchesSvc.getByTeamId(teamId);
   }
 
   /**
