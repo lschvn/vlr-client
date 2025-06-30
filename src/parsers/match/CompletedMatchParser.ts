@@ -20,10 +20,21 @@ export class CompletedMatchParser {
   public parse(matchId: string): CompletedMatch {
     const mainContainer = this.$('.col.mod-3');
 
-    const eventNameElement = mainContainer.find('.match-header-event > div > div');
-    const series = eventNameElement.find('.match-header-event-series').text().trim().replace(/\s+/g, ' ');
-    const eventName = eventNameElement.text().trim().replace(series, '').replace(/\s+/g, ' ').trim();
-
+    // ---------------------------------------------------------------------
+    // Extract event name and series.
+    // The structure is:
+    // <div class="match-header-event">
+    //   <img ... >
+    //   <div>
+    //     <div>EVENT NAME</div>
+    //     <div class="match-header-event-series">SERIES</div>
+    //   </div>
+    // </div>
+    // ---------------------------------------------------------------------
+    const eventSeriesEl = mainContainer.find('.match-header-event-series');
+    const series = eventSeriesEl.text().trim().replace(/\s+/g, ' ');
+    // The event name is the first <div> inside the wrapper (sibling of series)
+    const eventName = eventSeriesEl.prev().text().trim().replace(/\s+/g, ' ');
     const event = {
       name: eventName,
       series,
@@ -37,34 +48,46 @@ export class CompletedMatchParser {
 
     const patch = mainContainer.find('.match-header-date > div > div').text().trim();
 
-    const team1ScoreText = mainContainer.find('.match-header-vs-score .js-spoiler .match-header-vs-score-winner').text().trim();
-    const team2ScoreText = mainContainer.find('.match-header-vs-score .js-spoiler .match-header-vs-score-loser').text().trim();
+    // ---------------------------------------------------------------------
+    // Extract team data (left = mod-1, right = mod-2)
+    // The global score is presented once in the middle as "left:right".
+    // We parse both scores and later decide which team is winner.
+    // ---------------------------------------------------------------------
+    const scoreTextRaw = mainContainer
+      .find('.match-header-vs-score .js-spoiler')
+      .text()
+      .replace(/\s+/g, ''); // e.g. "0:2"
+    const [leftScoreStr, rightScoreStr] = scoreTextRaw.split(':');
+    const leftScore = parseInt(leftScoreStr, 10);
+    const rightScore = parseInt(rightScoreStr, 10);
 
-    const team1Elo = mainContainer.find('.match-header-link-name.mod-1 .match-header-link-name-elo').text().trim().replace(/\[|\]/g, '');
-    const team2Elo = mainContainer.find('.match-header-link-name.mod-2 .match-header-link-name-elo').text().trim().replace(/\[|\]/g, '');
-
-    const team1Data = {
+    const teamLeft = {
       name: mainContainer.find('.match-header-link-name.mod-1 .wf-title-med').text().trim(),
       logoUrl: 'https:' + mainContainer.find('.match-header-link.mod-1 img').attr('src'),
       link: VLR_URL + mainContainer.find('.match-header-link.mod-1').attr('href'),
-      elo: team1Elo,
-      score: parseInt(team1ScoreText, 10),
+      elo: mainContainer
+        .find('.match-header-link-name.mod-1 .match-header-link-name-elo')
+        .text()
+        .trim()
+        .replace(/\[|\]/g, ''),
+      score: leftScore,
     };
 
-    const team2Data = {
+    const teamRight = {
       name: mainContainer.find('.match-header-link-name.mod-2 .wf-title-med').text().trim(),
       logoUrl: 'https:' + mainContainer.find('.match-header-link.mod-2 img').attr('src'),
       link: VLR_URL + mainContainer.find('.match-header-link.mod-2').attr('href'),
-      elo: team2Elo,
-      score: parseInt(team2ScoreText, 10),
+      elo: mainContainer
+        .find('.match-header-link-name.mod-2 .match-header-link-name-elo')
+        .text()
+        .trim()
+        .replace(/\[|\]/g, ''),
+      score: rightScore,
     };
 
-    const team1 = team1ScoreText > team2ScoreText ? team1Data : team2Data;
-    const team2 = team1ScoreText > team2ScoreText ? team2Data : team1Data;
-
-    if (mainContainer.find('.match-header-link-name.mod-1 .wf-title-med').text().trim() !== team1.name) {
-      [team1.score, team2.score] = [team2.score, team1.score];
-    }
+    const winnerIsRight = rightScore > leftScore;
+    const team1 = winnerIsRight ? teamRight : teamLeft;
+    const team2 = winnerIsRight ? teamLeft : teamRight;
 
     const status = mainContainer.find('.match-header-vs-note').first().text().trim() as 'final';
     const bestOf = mainContainer.find('.match-header-vs-note').last().text().trim();
@@ -92,7 +115,20 @@ export class CompletedMatchParser {
       if (link) vods.push({ name, link: link.startsWith('http') ? link : 'https://' + link });
     });
 
-    const maps = this.parseCompletedMatchMaps();
+    let maps = this.parseCompletedMatchMaps();
+    // If the winner is on the right side, swap team-related data inside maps so that
+    // team1/* always refer to the winning team (team1 variable above).
+    if (winnerIsRight) {
+      maps = maps.map((m) => ({
+        ...m,
+        team1Score: m.team2Score,
+        team2Score: m.team1Score,
+        team1SideStats: m.team2SideStats,
+        team2SideStats: m.team1SideStats,
+        team1Stats: m.team2Stats,
+        team2Stats: m.team1Stats,
+      }));
+    }
     const head2head = this.parseHeadToHead();
     const pastMatches = this.parsePastMatches();
 
@@ -197,6 +233,7 @@ export class CompletedMatchParser {
       if (!roundNumText) return;
       const roundNum = parseInt(roundNumText, 10);
       const winSideEl = this.$(roundEl).find('.rnd-sq.mod-win');
+      if (winSideEl.length === 0) return; // Skip rounds without a winner (placeholder cells)
       const winningTeamSide = winSideEl.hasClass('mod-ct') ? 'ct' : 't';
       const outcomeIcon = winSideEl.find('img').attr('src') || '';
       const outcomeMatch = outcomeIcon.match(/round\/(\w+)\.webp/);
