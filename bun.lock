@@ -5,12 +5,13 @@
       "name": "vlr-client",
       "dependencies": {
         "cheerio": "latest",
+        "domhandler": "^5.0.3",
         "lru-cache": "latest",
         "pino": "latest",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "@types/cheerio": "latest",
+        "@types/cheerio": "^1.0.0",
         "@types/node": "latest",
         "vitest": "latest",
       },

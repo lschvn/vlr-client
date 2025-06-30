@@ -17,13 +17,13 @@ describe('MemoryLRU', () => {
   });
 
   it('expires entries after TTL', async () => {
-    const cache = new MemoryLRU({ ttl: 100 }); // 0.1 s
+    const cache = new MemoryLRU({ ttl: 200 }); // 0.2 s
     cache.set('temp', 'foo');
 
-    await wait(90);
+    await wait(180);
     expect(cache.get('temp')).toBe('foo'); // still there
 
-    await wait(20);
+    await wait(30);
     expect(cache.get('temp')).toBeUndefined(); // expired
   });
 
