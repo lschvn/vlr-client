@@ -63,13 +63,4 @@ export class TeamService {
     const url = `${this.BASE_URL}/${id}`;
     return this.fetchAndParse(url, useCache);
   }
-
-  async getBySlug(
-    id: string,
-    slug: string,
-    useCache = true
-  ): Promise<Envelope<Team>> {
-    const url = `${this.BASE_URL}/${id}/${slug}`;
-    return this.fetchAndParse(url, useCache);
-  }
 }

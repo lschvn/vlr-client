@@ -8,11 +8,13 @@ import { Metrics } from './core/metrics/Metrics';
 // Domain service(s)
 import { UpcomingMatchService } from './services/UpcomingMatch';
 import { CompletedMatchService } from './services/MatchCompleted';
+import { TeamService } from './services/TeamService';
 
 // Data contracts
 import type { Envelope } from './types.d';
 import type { MatchUpcoming } from './models/MatchUpcoming';
 import type { CompletedMatch } from './models/MatchCompleted';
+import type { Team } from './models/Team';
 
 
 export interface VlrClientOptions {
@@ -41,7 +43,6 @@ export interface VlrClientOptions {
  * @method getIncomingMatches - Retrieve the list of matches that are either *live* or *upcoming*.
  * @method getCompletedMatch - Retrieve the details of a completed match.
  * 
- * 
  * @method getTeamMatches - Retrieve the list of matches for a team.
  * @method getTeamBySlug - Retrieve the details of a team.
  * @method getTeamById - Retrieve the details of a team.
@@ -59,11 +60,12 @@ export class VlrClient {
   /* Domain-level services */
   private readonly upcomingSvc: UpcomingMatchService;
   private readonly completedSvc: CompletedMatchService;
+  private readonly teamSvc: TeamService;
 
   constructor(private readonly opts: VlrClientOptions = {}) {
     /* Core adapters */
     this.logger = opts.logger ?? new PinoLogger();
-    this.http = opts.httpClient ?? new HttpClient(this.logger);
+    this.http = opts.httpClient ?? new HttpClient();
     this.cache = opts.cache
       ? new MemoryLRU({ ttl: opts.cacheTTL })
       : undefined;
@@ -81,22 +83,37 @@ export class VlrClient {
       this.logger.child({ svc: 'completed' }),
       this.metrics,
     );
+    this.teamSvc = new TeamService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'team' }),
+      this.metrics,
+    );
+
   }
 
   /**
    * Retrieve the list of matches that are either *live* or *upcoming*.
    * See {@link MatchUpcoming} for the returned data structure.
    */
-  getIncomingMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
-    return this.upcomingSvc.listIncoming(useCache);
+  async getIncomingMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
+    return await this.upcomingSvc.listIncoming(useCache);
   }
 
   /**
    * Retrieve the details of a completed match.
    * See {@link CompletedMatch} for the returned data structure.
    */
-  getCompletedMatch(matchId: string): Promise<Envelope<CompletedMatch | null>> {
-    return this.completedSvc.getById(matchId);
+  async getCompletedMatch(matchId: string): Promise<Envelope<CompletedMatch | null>> {
+    return await this.completedSvc.getById(matchId);
+  }
+
+  /**
+   * Retrieve the details of a team.
+   * See {@link Team} for the returned data structure.
+   */
+  async getTeamById(id: string): Promise<Envelope<Team | null>> {
+    return await this.teamSvc.getById(id);
   }
 
   /** Return the current aggregated metrics snapshot. */
