@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "cheerio": "latest",
+    "domhandler": "^5.0.3",
     "lru-cache": "latest",
     "pino": "latest"
   }
