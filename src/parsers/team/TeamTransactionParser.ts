@@ -1,6 +1,6 @@
 import type { CheerioAPI } from 'cheerio';
-import { Url } from '../../utils/Url';
-import type { TeamTransaction, TransactionAction } from '../../models/TeamTransaction';
+import { Url } from '../../utils/Url.js';
+import type { TeamTransaction, TransactionAction } from '../../models/TeamTransaction.js';
 
 export class TeamTransactionParser {
   constructor(private readonly $: CheerioAPI) {}

@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache';
-import type { ICacheAdapter } from './ICacheAdapter';
+import type { ICacheAdapter } from './ICacheAdapter.js';
 
 export interface MemoryLRUOptions {
   /** Maximum items kept in memory (default: 5 000). */

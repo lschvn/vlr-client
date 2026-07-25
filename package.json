@@ -4,6 +4,12 @@
   "description": "A simple, lightweight scraper for VLR.gg",
   "main": "dist/VlrClient.js",
   "types": "dist/VlrClient.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/VlrClient.d.ts",
+      "import": "./dist/VlrClient.js"
+    }
+  },
   "entry": "src/VlrClient.ts",
   "type": "module",
   "files": [

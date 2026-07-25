@@ -4,13 +4,14 @@ import type { Element } from 'domhandler';
 import type {
   CompletedMatch,
   CompletedMatchMap,
+  CompletedMatchStatus,
   HeadToHead,
   PastMatch,
   PlayerStatsCompleted,
   PlayerStatValue,
   Round,
   RoundOutcome,
-} from '../../models/MatchCompleted';
+} from '../../models/MatchCompleted.js';
 
 const VLR_URL = 'https://www.vlr.gg';
 
@@ -20,58 +21,42 @@ export class CompletedMatchParser {
   public parse(matchId: string): CompletedMatch {
     const mainContainer = this.$('.col.mod-3');
 
-    // ---------------------------------------------------------------------
-    // Extract event name and series.
-    // The structure is:
-    // <div class="match-header-event">
-    //   <img ... >
-    //   <div>
-    //     <div>EVENT NAME</div>
-    //     <div class="match-header-event-series">SERIES</div>
-    //   </div>
-    // </div>
-    // ---------------------------------------------------------------------
     const eventSeriesEl = mainContainer.find('.match-header-event-series');
     let series = '', eventName = '';
     if (eventSeriesEl.length) {
       series = eventSeriesEl.text().trim().replace(/\s+/g, ' ');
       eventName = eventSeriesEl.prev().text().trim().replace(/\s+/g, ' ');
     } else {
-      // Fallback for minimal/partial HTML (tests) – take first div text inside event wrapper
       const nameCandidate = mainContainer.find('.match-header-event > div > div').first();
       eventName = nameCandidate.text().trim().replace(/\s+/g, ' ');
     }
     const event = {
       name: eventName,
       series,
-      link: VLR_URL + mainContainer.find('.match-header-event').attr('href'),
-      imageUrl: 'https:' + mainContainer.find('.match-header-event img').attr('src'),
+      link: this.absUrl(mainContainer.find('.match-header-event').attr('href')),
+      imageUrl: this.absUrl(mainContainer.find('.match-header-event img').attr('src')),
     };
 
     const date = mainContainer.find('.match-header-date > .moment-tz-convert').first().text().trim();
     const time = mainContainer.find('.match-header-date > .moment-tz-convert').last().text().trim();
-    const utcTimestamp = mainContainer.find('.match-header-date > .moment-tz-convert').data('utc-ts') as string;
+    const utcTimestamp = (mainContainer.find('.match-header-date > .moment-tz-convert').data('utc-ts') as string | undefined) ?? '';
 
     const patch = mainContainer.find('.match-header-date > div > div').text().trim();
 
-    // ---------------------------------------------------------------------
-    // Extract team data (left = mod-1, right = mod-2)
-    // The global score is presented once in the middle as "left:right".
-    // We parse both scores and later decide which team is winner.
-    // ---------------------------------------------------------------------
     const scoreTextRaw = mainContainer
-      .find('.match-header-vs-score .js-spoiler')
+      .find('.match-header-vs-score .sp-hide, .match-header-vs-score .js-spoiler')
+      .first()
       .text()
       .replace(/\s+/g, ''); // e.g. "0:2"
 
     const scoreParts = scoreTextRaw.split(':');
-    const leftScore = parseInt(scoreParts[0] || '0', 10);
-    const rightScore = parseInt(scoreParts[1] || '0', 10);
+    const leftScore = this.parseIntOr(scoreParts[0], 0);
+    const rightScore = this.parseIntOr(scoreParts[1], 0);
 
-    const teamLeft = {
+    const team1 = {
       name: mainContainer.find('.match-header-link-name.mod-1 .wf-title-med').text().trim(),
-      logoUrl: 'https:' + mainContainer.find('.match-header-link.mod-1 img').attr('src'),
-      link: VLR_URL + mainContainer.find('.match-header-link.mod-1').attr('href'),
+      logoUrl: this.absUrl(mainContainer.find('.match-header-link.mod-1 img').attr('src')),
+      link: this.absUrl(mainContainer.find('.match-header-link.mod-1').attr('href')),
       elo: mainContainer
         .find('.match-header-link-name.mod-1 .match-header-link-name-elo')
         .text()
@@ -80,10 +65,10 @@ export class CompletedMatchParser {
       score: leftScore,
     };
 
-    const teamRight = {
+    const team2 = {
       name: mainContainer.find('.match-header-link-name.mod-2 .wf-title-med').text().trim(),
-      logoUrl: 'https:' + mainContainer.find('.match-header-link.mod-2 img').attr('src'),
-      link: VLR_URL + mainContainer.find('.match-header-link.mod-2').attr('href'),
+      logoUrl: this.absUrl(mainContainer.find('.match-header-link.mod-2 img').attr('src')),
+      link: this.absUrl(mainContainer.find('.match-header-link.mod-2').attr('href')),
       elo: mainContainer
         .find('.match-header-link-name.mod-2 .match-header-link-name-elo')
         .text()
@@ -92,24 +77,21 @@ export class CompletedMatchParser {
       score: rightScore,
     };
 
-    const winnerIsRight = rightScore > leftScore;
-    const team1 = winnerIsRight ? teamRight : teamLeft;
-    const team2 = winnerIsRight ? teamLeft : teamRight;
-
-    const status = mainContainer.find('.match-header-vs-note').first().text().trim() as 'final';
+    const statusText = mainContainer.find('.match-header-vs-note').first().text().trim().toLowerCase();
+    const status: CompletedMatchStatus = statusText === 'final' ? statusText : 'final';
     const bestOf = mainContainer.find('.match-header-vs-note').last().text().trim();
 
     const streams: { name: string; link: string }[] = [];
     this.$('.match-streams .match-streams-container > *').each((_: number, el: Element) => {
       const $el = this.$(el);
       let name = '';
-      let link: string | undefined = '';
+      let link = '';
       if ($el.is('a')) {
         name = $el.text().trim().replace(/\s+/g, ' ');
-        link = $el.attr('href');
+        link = this.absUrl($el.attr('href'));
       } else if ($el.find('.match-streams-btn-embed').length > 0) {
         name = $el.find('.match-streams-btn-embed').text().trim().replace(/\s+/g, ' ');
-        link = $el.find('.match-streams-btn-external').attr('href');
+        link = this.absUrl($el.find('.match-streams-btn-external').attr('href'));
       }
       if (name && link) streams.push({ name, link });
     });
@@ -117,25 +99,12 @@ export class CompletedMatchParser {
     const vods: { name: string; link: string }[] = [];
     this.$('.match-vods .wf-card a').each((_: number, el: Element) => {
       const $el = this.$(el);
-      const link = $el.attr('href');
+      const link = this.absUrl($el.attr('href'));
       const name = $el.text().trim();
-      if (link) vods.push({ name, link: link.startsWith('http') ? link : 'https://' + link });
+      if (link) vods.push({ name, link });
     });
 
-    let maps = this.parseCompletedMatchMaps();
-    // If the winner is on the right side, swap team-related data inside maps so that
-    // team1/* always refer to the winning team (team1 variable above).
-    if (winnerIsRight) {
-      maps = maps.map((m) => ({
-        ...m,
-        team1Score: m.team2Score,
-        team2Score: m.team1Score,
-        team1SideStats: m.team2SideStats,
-        team2SideStats: m.team1SideStats,
-        team1Stats: m.team2Stats,
-        team2Stats: m.team1Stats,
-      }));
-    }
+    const maps = this.parseCompletedMatchMaps();
     const head2head = this.parseHeadToHead();
     const pastMatches = this.parsePastMatches();
 
@@ -159,6 +128,18 @@ export class CompletedMatchParser {
     };
   }
 
+  private absUrl(path?: string): string {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('//')) return 'https:' + path;
+    return VLR_URL + (path.startsWith('/') ? path : '/' + path);
+  }
+
+  private parseIntOr(value: string | undefined, fallback: number): number {
+    const n = parseInt((value ?? '').replace(/[^\d-]/g, ''), 10);
+    return Number.isNaN(n) ? fallback : n;
+  }
+
   private parsePastMatches(): { team1: PastMatch[]; team2: PastMatch[] } {
     const team1: PastMatch[] = [];
     const team2: PastMatch[] = [];
@@ -167,18 +148,20 @@ export class CompletedMatchParser {
       const $el = this.$(el);
       team1.push(this.extractPastMatch($el));
     });
-    histories.last().find('a.match-histories-item').each((_: number, el: Element) => {
-      const $el = this.$(el);
-      team2.push(this.extractPastMatch($el));
-    });
+    if (histories.length > 1) {
+      histories.last().find('a.match-histories-item').each((_: number, el: Element) => {
+        const $el = this.$(el);
+        team2.push(this.extractPastMatch($el));
+      });
+    }
     return { team1, team2 };
   }
 
   private extractPastMatch($el: cheerio.Cheerio<Element>): PastMatch {
     const opponentName = $el.find('.match-histories-item-opponent-name').text().trim();
-    const opponentLogoUrl = 'https:' + $el.find('.match-histories-item-opponent-logo').attr('src');
+    const opponentLogoUrl = this.absUrl($el.find('.match-histories-item-opponent-logo').attr('src'));
     const result = `${$el.find('.rf').text().trim()}-${$el.find('.ra').text().trim()}`;
-    const link = VLR_URL + $el.attr('href');
+    const link = this.absUrl($el.attr('href'));
     const date = $el.find('.match-histories-item-date').text().trim();
     const win = $el.hasClass('mod-win');
     return { opponentName, opponentLogoUrl, result, link, date, win };
@@ -193,9 +176,9 @@ export class CompletedMatchParser {
       const score2 = parseInt(scores.last().text().trim(), 10);
       const result = `${score1}-${score2}`;
       const date = $el.find('.match-h2h-matches-date').text().trim();
-      const link = VLR_URL + $el.attr('href');
+      const link = this.absUrl($el.attr('href'));
       const winnerImg = $el.find('.match-h2h-matches-team.mod-win').attr('src');
-      const team1img = 'https:' + this.$('.match-h2h-header-team').first().find('img').attr('src');
+      const team1img = this.absUrl(this.$('.match-h2h-header-team').first().find('img').attr('src'));
       const win = !!winnerImg && team1img.includes(winnerImg);
       h2h.push({ result, link, date, win });
     });
@@ -212,20 +195,24 @@ export class CompletedMatchParser {
       const mapName = mapElement.contents().first().text().trim();
       if (mapName.toLowerCase() === 'tbd') return;
       const duration = this.$(el).find('.map-duration').text().trim();
-      const team1Score = parseInt(this.$(el).find('.team:not(.mod-right) .score').text().trim(), 10);
-      const team2Score = parseInt(this.$(el).find('.team.mod-right .score').text().trim(), 10);
-      const statsSpans1 = this.$(el).find('.team:not(.mod-right) span[class^="mod-"]');
-      const statsSpans2 = this.$(el).find('.team.mod-right span[class^="mod-"]');
-      const team1SideStats = { defense: parseInt(statsSpans1.first().text().trim(), 10), attack: parseInt(statsSpans1.last().text().trim(), 10) };
-      const team2SideStats = { attack: parseInt(statsSpans2.first().text().trim(), 10), defense: parseInt(statsSpans2.last().text().trim(), 10) };
+      const team1Score = this.parseIntOr(this.$(el).find('.team:not(.mod-right) .score').text().trim(), 0);
+      const team2Score = this.parseIntOr(this.$(el).find('.team.mod-right .score').text().trim(), 0);
+      const team1SideStats = {
+        defense: this.parseIntOr(this.$(el).find('.team:not(.mod-right) span.mod-ct').first().text().trim(), 0),
+        attack: this.parseIntOr(this.$(el).find('.team:not(.mod-right) span.mod-t').first().text().trim(), 0),
+      };
+      const team2SideStats = {
+        attack: this.parseIntOr(this.$(el).find('.team.mod-right span.mod-t').first().text().trim(), 0),
+        defense: this.parseIntOr(this.$(el).find('.team.mod-right span.mod-ct').first().text().trim(), 0),
+      };
       const rounds = this.parseRounds(el);
-      const tables = this.$(el).find('table.wf-table-inset.mod-overview');
+      const tables = this.$(el).find('.ovw-table');
       const team1Stats: PlayerStatsCompleted[] = [];
       const team2Stats: PlayerStatsCompleted[] = [];
-      tables.first().find('tbody tr').each((_: number, row: Element) => {
+      tables.eq(0).find('.ovw-row:not(.mod-head)').each((_: number, row: Element) => {
         team1Stats.push(this.parsePlayerStatsCompleted(row));
       });
-      tables.last().find('tbody tr').each((_: number, row: Element) => {
+      tables.eq(1).find('.ovw-row:not(.mod-head)').each((_: number, row: Element) => {
         team2Stats.push(this.parsePlayerStatsCompleted(row));
       });
       maps.push({ name: mapName, duration, team1Score, team2Score, team1SideStats, team2SideStats, rounds, team1Stats, team2Stats });
@@ -233,52 +220,63 @@ export class CompletedMatchParser {
     return maps;
   }
 
-  private parseRounds(mapContainer: any): Round[] {
+  private parseRounds(mapContainer: Element): Round[] {
     const rounds: Round[] = [];
     this.$(mapContainer).find('.vlr-rounds-row-col').each((_: number, roundEl: Element) => {
       const roundNumText = this.$(roundEl).find('.rnd-num').text().trim();
       if (!roundNumText) return;
       const roundNum = parseInt(roundNumText, 10);
       const winSideEl = this.$(roundEl).find('.rnd-sq.mod-win');
-      if (winSideEl.length === 0) return; // Skip rounds without a winner (placeholder cells)
+      if (winSideEl.length === 0) return;
       const winningTeamSide = winSideEl.hasClass('mod-ct') ? 'ct' : 't';
       const outcomeIcon = winSideEl.find('img').attr('src') || '';
       const outcomeMatch = outcomeIcon.match(/round\/(\w+)\.webp/);
-      const outcome = (outcomeMatch ? outcomeMatch[1] : 'unknown') as RoundOutcome;
-      rounds.push({ roundNum, winningTeamSide, outcome, outcomeIconUrl: VLR_URL + outcomeIcon });
+      const outcome: RoundOutcome = outcomeMatch && ['defuse', 'elim', 'boom', 'time'].includes(outcomeMatch[1]!)
+        ? (outcomeMatch[1] as RoundOutcome)
+        : 'unknown';
+      rounds.push({ roundNum, winningTeamSide, outcome, outcomeIconUrl: this.absUrl(outcomeIcon) });
     });
     return rounds;
   }
 
-  private parsePlayerStatsCompleted(playerRow: any): PlayerStatsCompleted {
-    const getStat = (index: number): PlayerStatValue => ({
-      all: this.$(playerRow).find('.mod-stat').eq(index).find('.side.mod-side.mod-both').text().trim(),
-      attack: this.$(playerRow).find('.mod-stat').eq(index).find('.side.mod-side.mod-t').text().trim(),
-      defense: this.$(playerRow).find('.mod-stat').eq(index).find('.side.mod-side.mod-ct').text().trim(),
+  private parsePlayerStatsCompleted(playerRow: Element): PlayerStatsCompleted {
+    const $row = this.$(playerRow);
+
+    const getSides = ($cell: cheerio.Cheerio<Element>): PlayerStatValue => ({
+      all: $cell.find('.side.mod-both').first().text().trim(),
+      attack: $cell.find('.side.mod-t').first().text().trim(),
+      defense: $cell.find('.side.mod-ct').first().text().trim(),
     });
 
-    const getKDAStat = (className: string): PlayerStatValue => ({
-      all: this.$(playerRow).find(className).find('.side.mod-both').text().trim(),
-      attack: this.$(playerRow).find(className).find('.side.mod-t').text().trim(),
-      defense: this.$(playerRow).find(className).find('.side.mod-ct').text().trim(),
-    });
+    const getStat = (col: string): PlayerStatValue => getSides($row.find(`.ovw-cell[data-col="${col}"]`));
+    const getKdaStat = (col: string): PlayerStatValue =>
+      getSides($row.find(`.ovw-cell.mod-kda .ovw-kda-stat[data-col="${col}"]`));
 
     return {
-      name: this.$(playerRow).find('.mod-player .text-of').text().trim(),
-      link: VLR_URL + this.$(playerRow).find('.mod-player a').attr('href'),
-      agents: this.$(playerRow).find('.mod-agents img').map((_: number, agentEl: Element) => ({ name: this.$(agentEl).attr('title') || '', iconUrl: 'https:' + this.$(agentEl).attr('src') })).get(),
-      rating: getStat(0),
-      acs: getStat(1),
-      k: getKDAStat('.mod-vlr-kills'),
-      d: { all: this.$(playerRow).find('.mod-vlr-deaths .side.mod-both').text().trim(), attack: this.$(playerRow).find('.mod-vlr-deaths .side.mod-t').text().trim(), defense: this.$(playerRow).find('.mod-vlr-deaths .side.mod-ct').text().trim() },
-      a: getKDAStat('.mod-vlr-assists'),
-      kdDiff: getStat(4),
-      kast: getStat(5),
-      adr: getStat(6),
-      hsPercent: getStat(7),
-      fk: getKDAStat('.mod-fb'),
-      fd: getKDAStat('.mod-fd'),
-      fkDiff: getStat(10),
+      name: $row.find('.ovw-cell.mod-player .ovw-player-name').first().text().trim(),
+      link: this.absUrl($row.find('.ovw-cell.mod-player .ovw-player a[href^="/player/"]').first().attr('href')),
+      agents: $row
+        .find('.ovw-agents img')
+        .map((_: number, agentEl: Element) => {
+          const $img = this.$(agentEl);
+          return {
+            name: $img.attr('alt') || $img.attr('title') || '',
+            iconUrl: this.absUrl($img.attr('src')),
+          };
+        })
+        .get(),
+      rating: getStat('rating2'),
+      acs: getStat('acs'),
+      k: getKdaStat('kills'),
+      d: getKdaStat('deaths'),
+      a: getKdaStat('assists'),
+      kdDiff: getStat('kd-diff'),
+      kast: getStat('kast'),
+      adr: getStat('adr'),
+      hsPercent: getStat('hsp'),
+      fk: getStat('fb'),
+      fd: getStat('fd'),
+      fkDiff: getStat('fk-diff'),
     };
   }
 }

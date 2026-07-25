@@ -7,14 +7,40 @@ import type {
   RecentMatch,
   Staff,
   Team,
-} from '../../models/Team';
-import { Url } from '../../utils/Url';
+} from '../../models/Team.js';
+import { Url } from '../../utils/Url.js';
 
 export class TeamParser {
   constructor(private readonly $: CheerioAPI) {}
 
   private cleanText(text: string): string {
     return text.replace(/[\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  private static readonly SOCIAL_HOSTS: [RegExp, string][] = [
+    [/(?:^|\.)(?:x\.com|twitter\.com)$/, 'twitter'],
+    [/(?:^|\.)twitch\.tv$/, 'twitch'],
+    [/(?:^|\.)youtube\.com$/, 'youtube'],
+    [/(?:^|\.)instagram\.com$/, 'instagram'],
+    [/(?:^|\.)facebook\.com$/, 'facebook'],
+    [/(?:^|\.)tiktok\.com$/, 'tiktok'],
+    [/(?:^|\.)discord(?:\.gg|\.com)$/, 'discord'],
+  ];
+
+  private getHost(url: string): string {
+    try {
+      return new URL(url).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  }
+
+  private classifySocial(url: string): string | null {
+    const host = this.getHost(url);
+    for (const [pattern, name] of TeamParser.SOCIAL_HOSTS) {
+      if (pattern.test(host)) return name;
+    }
+    return null;
   }
 
   private getPlayer(el: Cheerio<Element>): Player {
@@ -31,7 +57,7 @@ export class TeamParser {
       alias: this.cleanText(
         nameElement.clone().children().remove().end().text()
       ),
-      realName: this.cleanText(el.find('.team-roster-item-name-real').text()),
+      realName: this.cleanText(el.find('.team-roster-item-name-real').text()) || null,
       countryCode,
       avatarUrl: Url.normalize(
         el.find('.team-roster-item-img img').attr('src') || ''
@@ -53,7 +79,7 @@ export class TeamParser {
       alias: this.cleanText(
         nameElement.clone().children().remove().end().text()
       ),
-      realName: this.cleanText(el.find('.team-roster-item-name-real').text()),
+      realName: this.cleanText(el.find('.team-roster-item-name-real').text()) || null,
       countryCode,
       avatarUrl: Url.normalize(
         el.find('.team-roster-item-img img').attr('src') || ''
@@ -79,15 +105,18 @@ export class TeamParser {
         .find((c) => c.startsWith('mod-'))
         ?.replace('mod-', '') || '';
 
-    const website =
-      header.find('.team-header-links a:first-child').attr('href') || null;
-    const socials = header
-      .find(".team-header-links a[href*='x.com']")
-      .map((_, el) => ({
-        name: this.cleanText(this.$(el).text()),
-        url: this.$(el).attr('href') || '',
-      }))
-      .get();
+    let website: string | null = null;
+    const socials: { name: string; url: string }[] = [];
+    header.find('.team-header-links a').each((_, el) => {
+      const href = this.$(el).attr('href') || '';
+      if (!href) return;
+      const social = this.classifySocial(href);
+      if (social) {
+        socials.push({ name: social, url: href });
+      } else if (website === null) {
+        website = href;
+      }
+    });
 
     const totalWinnings =
       this.cleanText(
@@ -153,11 +182,19 @@ export class TeamParser {
           team: isNaN(teamScore) ? null : teamScore,
           opponent: isNaN(opponentScore) ? null : opponentScore,
         };
-        const eventInfo = this.cleanText(
-          item.find('.m-item-event').text()
-        ).split('⋅');
-        const eventName = eventInfo[0]?.trim() || '';
-        const eventStage = eventInfo[1]?.trim() || '';
+        const eventContainer = item.find('.m-item-event');
+        const eventName = this.cleanText(
+          eventContainer.find('div.text-of').first().text()
+        );
+        const eventStage = this.cleanText(
+          eventContainer
+            .clone()
+            .children('div')
+            .remove()
+            .end()
+            .text()
+            .replace(/⋅/g, ' ')
+        );
         const date = this.cleanText(item.find('.m-item-date').text());
 
         recentResults.push({
@@ -186,9 +223,7 @@ export class TeamParser {
         const year =
           parseInt(this.cleanText(item.children().last().text())) || 0;
 
-        const placementEl = item
-          .find("div[style='margin-top: 5px; line-height: 1.2;']")
-          .first();
+        const placementEl = item.find('.team-event-item-series').first().parent();
 
         if (placementEl.length) {
           const placementText = this.cleanText(

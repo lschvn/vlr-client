@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ILogger } from '../core/log/ILogger';
-import type { Metrics } from '../core/metrics/Metrics';
-import { TeamMatchesParser } from '../parsers/team/TeamMatchesParser';
-import type { Envelope } from '../types';
-import type { TeamMatch } from '../models/TeamMatch';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import type { Metrics } from '../core/metrics/Metrics.js';
+import { TeamMatchesParser } from '../parsers/team/TeamMatchesParser.js';
+import type { Envelope } from '../types.js';
+import type { TeamMatch } from '../models/TeamMatch.js';
 
 export class TeamMatchesService {
   private readonly BASE_URL = 'https://www.vlr.gg/team/matches';

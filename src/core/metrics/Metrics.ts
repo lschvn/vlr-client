@@ -50,7 +50,7 @@ export class Metrics {
     return {
       callCount: this.callCount,
       elapsedMs: this.totalMs,
-      successRate: this.callCount === 0 ? 1 : this.success / this.callCount,
+      successRate: this.callCount === 0 ? 0 : this.success / this.callCount,
     };
   }
 

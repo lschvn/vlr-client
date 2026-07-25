@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { ILogger } from '../core/log/ILogger';
-import { Metrics } from '../core/metrics/Metrics';
-import type { MatchUpcoming } from '../models/MatchUpcoming';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import { Metrics } from '../core/metrics/Metrics.js';
+import type { MatchUpcoming } from '../models/MatchUpcoming.js';
 
-import { UpcomingMatchService } from './UpcomingMatch';
+import { UpcomingMatchService } from './UpcomingMatch.js';
 
 /* ------------------------------------------------------------------------- *
  * Test doubles (very lightweight – sufficient for unit-tests).
@@ -84,7 +84,7 @@ describe('UpcomingMatchService', () => {
     // Data is parsed
     expect(envelope.data.length).toBeGreaterThan(0);
     const first: MatchUpcoming = envelope.data[0]!;
-    expect(first.id).toBe('509209');
+    expect(first.id).toBe('706359');
 
     // Returned info
     expect(envelope.info.fromCache).toBe(false);

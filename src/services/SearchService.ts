@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ILogger } from '../core/log/ILogger';
-import type { Metrics } from '../core/metrics/Metrics';
-import { SearchParser } from '../parsers/search/SearchParser';
-import type { Envelope } from '../types';
-import type { SearchResult, SearchCategory } from '../models/Search';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import type { Metrics } from '../core/metrics/Metrics.js';
+import { SearchParser } from '../parsers/search/SearchParser.js';
+import type { Envelope } from '../types.js';
+import type { SearchResult, SearchCategory } from '../models/Search.js';
 
 export class SearchService {
   private readonly BASE_URL = 'https://www.vlr.gg/search';

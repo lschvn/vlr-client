@@ -8,7 +8,17 @@ export interface HttpClientOptions {
   retryDelayMs?: number;
   /** Timeout (ms) for the underlying `fetch` (default: 10 000 ms). */
   timeoutMs?: number;
+  /** Extra headers merged over (and overriding) the defaults. */
+  headers?: Record<string, string>;
 }
+
+/**
+ * Default `User-Agent` sent with every request — vlr.gg sits behind
+ * Cloudflare and rejects requests without a browser-like UA.
+ * Export your own value through {@link HttpClientOptions.headers} to override.
+ */
+export const DEFAULT_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 /**
  * Minimal interface the rest of the application depends on.
@@ -53,11 +63,18 @@ export class HttpClient implements IHttpClient {
   private readonly retries: number;
   private readonly retryDelayMs: number;
   private readonly timeoutMs: number;
+  private readonly headers: Record<string, string>;
 
   constructor(opts: HttpClientOptions = {}) {
     this.retries = opts.retries ?? 2;
     this.retryDelayMs = opts.retryDelayMs ?? 500;
     this.timeoutMs = opts.timeoutMs ?? 10_000;
+    this.headers = {
+      'User-Agent': DEFAULT_USER_AGENT,
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      ...opts.headers,
+    };
   }
 
   /* --------------------------------------------------------------
@@ -78,7 +95,11 @@ export class HttpClient implements IHttpClient {
     const timer = setTimeout(() => ctrl.abort(), this.timeoutMs);
 
     try {
-      return await fetch(url, { signal: ctrl.signal, redirect: 'follow' });
+      return await fetch(url, {
+        signal: ctrl.signal,
+        redirect: 'follow',
+        headers: this.headers,
+      });
     } finally {
       clearTimeout(timer);
     }
@@ -104,6 +125,10 @@ export class HttpClient implements IHttpClient {
 
       throw new HttpError(url, res.status, `status ${res.status}`);
     } catch (err) {
+      // HTTP-level failures (non-OK status) are never retried here and must
+      // propagate unchanged with their numeric status intact.
+      if (err instanceof HttpError) throw err;
+
       // abort/time-out triggers DOMException whose `name === 'AbortError'`
       const isTimeout = err instanceof DOMException && err.name === 'AbortError';
 
@@ -137,6 +162,7 @@ export class HttpClient implements IHttpClient {
     return (
       typeof err === 'object' &&
       err !== null &&
+      !(err instanceof HttpError) &&
       !Number.isFinite((err as { statusCode?: unknown }).statusCode)
     );
   }

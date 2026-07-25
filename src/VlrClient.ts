@@ -1,29 +1,33 @@
-import { HttpClient, type IHttpClient } from './core/http/HttpClient';
-import type { ICacheAdapter } from './core/cache/ICacheAdapter';
-import { MemoryLRU } from './core/cache/MemoryLRU';
-import type { ILogger } from './core/log/ILogger';
-import { PinoLogger } from './core/log/PinoLogger';
-import { Metrics } from './core/metrics/Metrics';
+import { HttpClient, type IHttpClient } from './core/http/HttpClient.js';
+import type { ICacheAdapter } from './core/cache/ICacheAdapter.js';
+import { MemoryLRU } from './core/cache/MemoryLRU.js';
+import type { ILogger } from './core/log/ILogger.js';
+import { PinoLogger } from './core/log/PinoLogger.js';
+import { Metrics } from './core/metrics/Metrics.js';
 
 // Domain service(s)
-import { UpcomingMatchService } from './services/UpcomingMatch';
-import { CompletedMatchService } from './services/MatchCompleted';
-import { TeamService } from './services/TeamService';
-import { SearchService } from './services/SearchService';
-import { TeamMatchesService } from './services/TeamMatchesService';
-import { TeamTransactionService } from './services/TeamTransactionService';
-import { PlayerService } from './services/PlayerService';
+import { UpcomingMatchService } from './services/UpcomingMatch.js';
+import { CompletedMatchService } from './services/MatchCompleted.js';
+import { MatchService } from './services/Match.js';
+import { TeamService } from './services/TeamService.js';
+import { SearchService } from './services/SearchService.js';
+import { TeamMatchesService } from './services/TeamMatchesService.js';
+import { TeamTransactionService } from './services/TeamTransactionService.js';
+import { PlayerService } from './services/PlayerService.js';
 
 // Data contracts
-import type { Envelope } from './types.d';
-import type { MatchUpcoming } from './models/MatchUpcoming';
-import type { CompletedMatch } from './models/MatchCompleted';
-import type { Team } from './models/Team';
-import type { SearchCategory, SearchResult } from './models/Search';
-import type { TeamMatch } from './models/TeamMatch';
-import type { TeamTransaction } from './models/TeamTransaction';
-import type { Player } from './models/Player';
+import type { Envelope } from './types.js';
+import type { MatchUpcoming } from './models/MatchUpcoming.js';
+import type { CompletedMatch } from './models/MatchCompleted.js';
+import type { Match, MatchStatus } from './services/Match.js';
+import type { Team } from './models/Team.js';
+import type { SearchCategory, SearchResult } from './models/Search.js';
+import type { TeamMatch } from './models/TeamMatch.js';
+import type { TeamTransaction } from './models/TeamTransaction.js';
+import type { Player } from './models/Player.js';
 
+
+export type { Match, MatchStatus };
 
 export interface VlrClientOptions {
   /** Enable the built-in in-memory cache. */
@@ -49,8 +53,9 @@ export interface VlrClientOptions {
  * @see {@link VlrClientOptions} for configuration options.
  * 
  * @method getUpcomingMatches - Retrieve the list of matches that are either *live* or *upcoming*.
+ * @method getLiveMatches - Retrieve only the matches currently *live* (short cache TTL).
  * @method getCompletedMatch - Retrieve the details of a completed match.
- * @method getLiveMatch - Retrieve the details of a live match.
+ * @method getMatchById - Retrieve the details of a match whatever its status (upcoming, live or completed).
  * 
  * @method getTeamMatches - Retrieve the list of matches for a team.
  * @method getTeamById - Retrieve the details of a team.
@@ -74,6 +79,7 @@ export class VlrClient {
   /* Domain-level services */
   private readonly upcomingSvc: UpcomingMatchService;
   private readonly completedSvc: CompletedMatchService;
+  private readonly matchSvc: MatchService;
   private readonly teamSvc: TeamService;
   private readonly searchSvc: SearchService;
   private readonly teamMatchesSvc: TeamMatchesService;
@@ -99,6 +105,12 @@ export class VlrClient {
       this.http,
       this.cache,
       this.logger.child({ svc: 'completed' }),
+      this.metrics,
+    );
+    this.matchSvc = new MatchService(
+      this.http,
+      this.cache,
+      this.logger.child({ svc: 'match' }),
       this.metrics,
     );
     this.teamSvc = new TeamService(
@@ -139,6 +151,25 @@ export class VlrClient {
    */
   async getUpcomingMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
     return await this.upcomingSvc.listIncoming(useCache);
+  }
+
+  /**
+   * Retrieve only the matches currently *live*.
+   * Same card shape as {@link getUpcomingMatches} (see {@link MatchUpcoming}),
+   * filtered on the `LIVE` banner status. Cached with a short TTL (30 s)
+   * since live scores only change when the page is re-fetched.
+   */
+  async getLiveMatches(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
+    return await this.upcomingSvc.listLive(useCache);
+  }
+
+  /**
+   * Retrieve the details of a match whatever its status
+   * (`upcoming`, `live` or `completed`). See {@link Match}.
+   * Live matches are cached with a short TTL (30 s), others for 5 min.
+   */
+  async getMatchById(matchId: string, useCache = true): Promise<Envelope<Match | null>> {
+    return await this.matchSvc.getById(matchId, useCache);
   }
 
   /**

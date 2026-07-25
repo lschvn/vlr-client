@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { ILogger } from '../core/log/ILogger';
-import { Metrics } from '../core/metrics/Metrics';
-import type { SearchResult } from '../models/Search';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import { Metrics } from '../core/metrics/Metrics.js';
+import type { SearchResult } from '../models/Search.js';
 
-import { SearchService } from './SearchService';
+import { SearchService } from './SearchService.js';
 
 /* ------------------------------------------------------------------------- *
  * Test doubles

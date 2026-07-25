@@ -1,12 +1,12 @@
 import * as cheerio from 'cheerio';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { ILogger } from '../core/log/ILogger';
-import type { Metrics } from '../core/metrics/Metrics';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import type { Metrics } from '../core/metrics/Metrics.js';
 
-import type { Envelope } from '../types.d';
-import type { CompletedMatch } from '../models/MatchCompleted';
-import { CompletedMatchParser } from '../parsers/match/CompletedMatchParser';
+import type { Envelope } from '../types.js';
+import type { CompletedMatch } from '../models/MatchCompleted.js';
+import { CompletedMatchParser } from '../parsers/match/CompletedMatchParser.js';
 
 export class CompletedMatchService {
   private readonly VLR_URL = 'https://www.vlr.gg';

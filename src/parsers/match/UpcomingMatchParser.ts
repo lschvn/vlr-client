@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
-import type { MatchUpcoming, TeamMini, EventMini } from '../../models/MatchUpcoming';
+import type { MatchUpcoming, TeamMini, EventMini } from '../../models/MatchUpcoming.js';
 
 /**
  * Parser converting the raw HTML retrieved from `/matches` into an
@@ -48,7 +48,10 @@ export class UpcomingMatchParser {
           const id = url.split('/')[1] ?? '';
 
           // 2. Extract the scheduled time label
-          const time = matchEl.find('.match-item-time').text().trim();
+          const timeEl = matchEl.find('.match-item-time');
+          const time = timeEl.text().trim();
+          const utcTs = parseInt(timeEl.attr('data-utc-ts') || '', 10);
+          const utcTimestamp = isNaN(utcTs) ? undefined : utcTs;
 
           // 3. Extract match banner status and ETA (time to start)
           const statusText = matchEl.find('.ml-status').text().trim();
@@ -69,11 +72,14 @@ export class UpcomingMatchParser {
 
               const scoreText = teamNode.find('.match-item-vs-team-score').text().trim();
               // Score is a number when present, otherwise null.
-              const score = scoreText === '–' ? null : parseInt(scoreText, 10);
+              const parsedScore = parseInt(scoreText, 10);
+              const score = scoreText === '–' || scoreText === '' || isNaN(parsedScore) ? null : parsedScore;
 
               return { name, countryCode, score } as TeamMini;
             })
             .get();
+
+          if (teams.length < 2) return; // Skip malformed cards lacking two teams.
 
           // 5. Extract event information (tournament, stage, small icon)
           const eventContainer = matchEl.find('.match-item-event');
@@ -81,8 +87,9 @@ export class UpcomingMatchParser {
           // The event name is the last text node within the container.
           const eventName = eventContainer.contents().last().text().trim();
           const iconUrl = matchEl.find('.match-item-icon img').attr('src') ?? '';
+          const normalizedIconUrl = iconUrl.startsWith('//') ? `https:${iconUrl}` : iconUrl;
 
-          const event: EventMini = { name: eventName, stage, iconUrl };
+          const event: EventMini = { name: eventName, stage, iconUrl: normalizedIconUrl };
 
           // 6. Extract Stats / VODs availability badges (order is stable in the markup)
           const vodElements = matchEl.find('.match-item-vod');
@@ -95,6 +102,7 @@ export class UpcomingMatchParser {
             url,
             date: currentDate,
             time,
+            utcTimestamp,
             status,
             eta,
             teams: teams as [TeamMini, TeamMini], // Guaranteed to be a 2-teams tuple

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as cheerio from 'cheerio';
-import { CompletedMatchParser } from '../parsers/match/CompletedMatchParser';
+import { CompletedMatchParser } from '../parsers/match/CompletedMatchParser.js';
 
 describe('CompletedMatchParser', () => {
   it('should instantiate and parse without throwing', () => {

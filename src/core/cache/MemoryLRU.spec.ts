@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryLRU } from './MemoryLRU';
+import { MemoryLRU } from './MemoryLRU.js';
 
 describe('MemoryLRU', () => {
   // Helper util to wait for real time (ms)

@@ -40,6 +40,8 @@ export interface MatchUpcoming {
   date: string;
   /** Start time label – e.g. “6:00 PM”. */
   time: string;
+  /** Unix timestamp (seconds) of the scheduled start, when exposed by the listing. */
+  utcTimestamp?: number;
   /** “LIVE” or “Upcoming”. */
   status: MatchBannerStatus;
   /** “1h 9m” until start or `null` when live. */

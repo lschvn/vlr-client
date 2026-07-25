@@ -1,4 +1,11 @@
-import type { EventMini } from "./MatchUpcoming";
+export type CompletedMatchEvent = {
+  name: string;
+  series: string;
+  link: string;
+  imageUrl: string;
+};
+
+export type CompletedMatchStatus = 'final';
 
 export type TeamInfoCompleted = {
   name: string;
@@ -71,14 +78,14 @@ export type HeadToHead = {
 
 export type CompletedMatch = {
   id: string;
-  event: Partial<EventMini>;
+  event: CompletedMatchEvent;
   date: string;
   time: string;
   utcTimestamp: string;
   patch: string;
   team1: TeamInfoCompleted;
   team2: TeamInfoCompleted;
-  status: 'final';
+  status: CompletedMatchStatus;
   bestOf: string;
   streams: { name: string; link: string }[];
   vods: { name: string; link: string }[];

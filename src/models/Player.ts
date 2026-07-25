@@ -1,4 +1,4 @@
-import type { TeamMatch } from './TeamMatch';
+import type { TeamMatch } from './TeamMatch.js';
 
 export type AgentStatTimespan = '30d' | '60d' | '90d' | 'all';
 
@@ -6,6 +6,8 @@ export interface PlayerAgentStats {
   name: string;
   imageUrl: string;
   use: string;
+  mapsPlayed: number;
+  usagePercent: number;
   rounds: number;
   rating: number;
   acs: number;
@@ -14,8 +16,7 @@ export interface PlayerAgentStats {
   kast: number;
   kpr: number;
   apr: number;
-  fkpr: number;
-  fdpr: number;
+  fkfd: number;
   kills: number;
   deaths: number;
   assists: number;

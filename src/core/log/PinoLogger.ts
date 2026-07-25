@@ -1,5 +1,5 @@
-import pino, { type Logger, type LoggerOptions } from 'pino';
-import type { ILogger } from './ILogger';
+import { pino, type Logger, type LoggerOptions } from 'pino';
+import type { ILogger } from './ILogger.js';
 
 /**
  * Thin wrapper around **pino** that fulfils {@link ILogger}.

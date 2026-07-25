@@ -27,9 +27,9 @@ export interface TeamMatch {
     logoUrl?: string;
   };
   result: {
-    own: number;
-    opponent: number;
-    status: 'win' | 'loss' | 'draw';
+    own: number | null;
+    opponent: number | null;
+    status: 'win' | 'loss' | 'draw' | 'upcoming';
   };
   vods: string[];
   date: string;

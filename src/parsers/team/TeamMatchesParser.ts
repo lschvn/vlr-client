@@ -1,7 +1,7 @@
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
-import { Url } from '../../utils/Url';
-import type { TeamMatch, TeamMatchGame } from '../../models/TeamMatch';
+import { Url } from '../../utils/Url.js';
+import type { TeamMatch, TeamMatchGame } from '../../models/TeamMatch.js';
 
 export class TeamMatchesParser {
   constructor(private readonly $: CheerioAPI) {}
@@ -21,9 +21,10 @@ export class TeamMatchesParser {
 
       const getAgents = (selector: string) => {
         return gameEl.find(selector).find('img').map((_, agentEl) => {
-          const src = this.$(agentEl).attr('src') || '';
+          const agentNode = this.$(agentEl);
+          const src = agentNode.attr('src') || '';
           return {
-            name: src.split('/').pop()?.replace('.png', '') || '',
+            name: agentNode.attr('alt') || agentNode.attr('title') || src.split('/').pop()?.replace('.png', '') || '',
             imageUrl: Url.normalize(src),
           }
         }).get();
@@ -55,25 +56,32 @@ export class TeamMatchesParser {
 
       if (!id) return;
 
-      const eventInfo = el.find('.m-item-event .text-of');
-      const eventName = this.cleanText(eventInfo.find('div:first-child').text());
-      const eventStage = this.cleanText(eventInfo.clone().children('div').remove().end().text());
+      const eventContainer = el.find('.m-item-event');
+      const eventName = this.cleanText(eventContainer.find('div.text-of').first().text());
+      const eventStage = this.cleanText(
+        eventContainer.clone().children('div').remove().end().text().replace(/⋅/g, ' ')
+      );
 
       const opponentEl = el.find('.m-item-team.mod-right');
       const opponentName = this.cleanText(opponentEl.find('.m-item-team-name').text());
       const opponentTag = this.cleanText(opponentEl.find('.m-item-team-tag').text());
 
       const resultEl = el.find('.m-item-result');
-      const scores = resultEl.find('span').map((i, scoreEl) => this.$(scoreEl).text()).get();
-      const ownScore = parseInt(scores[0]?.trim() || '0');
-      const opponentScore = parseInt(scores[1]?.trim() || '0');
+      const isCompleted = resultEl.hasClass('mod-win') || resultEl.hasClass('mod-loss');
+      const scores = resultEl.find('span').map((i, scoreEl) => this.$(scoreEl).text().trim()).get();
+      const parseScore = (s: string | undefined) => {
+        const n = parseInt(s || '');
+        return isNaN(n) ? null : n;
+      };
+      const ownScore = parseScore(scores[0]);
+      const opponentScore = parseScore(scores[1]);
 
       const vods = el.find('.m-item-vods .wf-tag .full').map((_, vodEl) => this.cleanText(this.$(vodEl).text())).get();
 
       matches.push({
         id,
         url: Url.normalize(url),
-        status: el.attr('href')?.includes('?') ? 'upcoming' : 'completed',
+        status: isCompleted ? 'completed' : 'upcoming',
         event: {
           name: eventName,
           stage: eventStage,
@@ -87,7 +95,7 @@ export class TeamMatchesParser {
         result: {
           own: ownScore,
           opponent: opponentScore,
-          status: resultEl.hasClass('mod-win') ? 'win' : resultEl.hasClass('mod-loss') ? 'loss' : 'draw',
+          status: resultEl.hasClass('mod-win') ? 'win' : resultEl.hasClass('mod-loss') ? 'loss' : ownScore === null && opponentScore === null ? 'upcoming' : 'draw',
         },
         date: this.cleanText(el.find('.m-item-date').text()),
         games: this.getGames(String(resultEl.data('match-id'))),

@@ -10,7 +10,6 @@ A simple, and lightweight TypeScript scraper for [VLR.gg](https://www.vlr.gg/), 
 -   Get player profiles, stats, and history
 -   Search for teams, players, and events
 -   Built-in in-memory caching
--   No external dependencies
 
 ## Installation
 
@@ -31,18 +30,36 @@ const vlr = new VlrClient();
 
 ### Matches
 
-#### `getIncomingMatches(): Promise<Envelope<MatchUpcoming[]>>`
+#### `getUpcomingMatches(): Promise<Envelope<MatchUpcoming[]>>`
 
 Retrieve the list of matches that are either *live* or *upcoming*.
 
 ```typescript
-const { data: upcomingMatches } = await vlr.getIncomingMatches();
+const { data: upcomingMatches } = await vlr.getUpcomingMatches();
 console.log(upcomingMatches);
+```
+
+#### `getLiveMatches(): Promise<Envelope<MatchUpcoming[]>>`
+
+Retrieve only the matches currently *live* (short cache TTL, since vlr.gg updates scores on page refresh only).
+
+```typescript
+const { data: liveMatches } = await vlr.getLiveMatches();
+console.log(liveMatches);
+```
+
+#### `getMatchById(matchId: string): Promise<Envelope<Match | null>>`
+
+Retrieve the details of a match whatever its status (`upcoming`, `live` or `completed`). For live matches this includes the current series score and the rounds played so far.
+
+```typescript
+const { data: match } = await vlr.getMatchById('123456');
+console.log(match?.status, match?.team1.score, match?.team2.score);
 ```
 
 #### `getCompletedMatch(matchId: string): Promise<Envelope<CompletedMatch | null>>`
 
-Retrieve the details of a completed match.
+Retrieve the details of a completed match. Returns `null` if the match is not finished yet (use `getMatchById` for live/upcoming matches).
 
 ```typescript
 const { data: match } = await vlr.getCompletedMatch('123456');

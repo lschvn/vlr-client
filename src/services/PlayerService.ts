@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ILogger } from '../core/log/ILogger';
-import type { Metrics } from '../core/metrics/Metrics';
-import { PlayerParser } from '../parsers/player/PlayerParser';
-import type { Envelope } from '../types';
-import type { Player } from '../models/Player';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import type { Metrics } from '../core/metrics/Metrics.js';
+import { PlayerParser } from '../parsers/player/PlayerParser.js';
+import type { Envelope } from '../types.js';
+import type { Player } from '../models/Player.js';
 
 export class PlayerService {
   private readonly BASE_URL = 'https://www.vlr.gg/player';

@@ -1,13 +1,24 @@
 import type { CheerioAPI } from 'cheerio';
-import { Url } from '../../utils/Url';
-import type { Player, PlayerAgentStats, PlayerEventPlacement, PlayerNews, PlayerTeam } from '../../models/Player';
-import { TeamMatchesParser } from '../team/TeamMatchesParser';
+import { Url } from '../../utils/Url.js';
+import type { AgentStatTimespan, Player, PlayerAgentStats, PlayerEventPlacement, PlayerNews, PlayerTeam } from '../../models/Player.js';
+import { TeamMatchesParser } from '../team/TeamMatchesParser.js';
 
 export class PlayerParser {
   constructor(private readonly $: CheerioAPI) {}
 
   private cleanText(text: string): string {
     return text.replace(/[\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  private parseNumber(text: string): number {
+    const n = parseFloat(this.cleanText(text).replace('%', ''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  private titleCase(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/(^|\s)\S/g, (c) => c.toUpperCase());
   }
 
   parse(): Player {
@@ -18,11 +29,11 @@ export class PlayerParser {
     const realName = this.cleanText(header.find('h2.player-real-name').text());
     const avatarUrl = Url.normalize(header.find('.wf-avatar img').attr('src') || '');
     const countryEl = header.find('.ge-text-light i.flag');
-    const countryName = this.cleanText(countryEl.parent().text());
+    const countryName = this.titleCase(this.cleanText(countryEl.parent().text()));
     const countryCode = countryEl.attr('class')?.split(' ').find(c => c.startsWith('mod-'))?.replace('mod-', '') || '';
 
     const socials: { name: string, url: string }[] = [];
-    header.find('a[href*="x.com"], a[href*="twitch.tv"]').each((_, el) => {
+    header.find('a[href*="x.com"], a[href*="twitter.com"], a[href*="twitch.tv"]').each((_, el) => {
         const link = this.$(el).attr('href') || '';
         let name = 'unknown';
         if (link.includes('x.com') || link.includes('twitter.com')) name = 'twitter';
@@ -31,31 +42,37 @@ export class PlayerParser {
     });
     
     const agentStats: PlayerAgentStats[] = [];
-    const timespan = this.$('.player-stats-filter-btn.mod-active').text().trim() as Player['agentStats']['timespan'] || '60d';
-    this.$('.wf-card.mod-table table.wf-table tbody tr').each((_, el) => {
+    const timespans: AgentStatTimespan[] = ['30d', '60d', '90d', 'all'];
+    const rawTimespan = this.cleanText(this.$('.player-stats-filter-btn.mod-active').text());
+    const timespan: AgentStatTimespan = timespans.includes(rawTimespan as AgentStatTimespan)
+      ? rawTimespan as AgentStatTimespan
+      : '60d';
+    this.$('table.st-table.mod-agent-rows tbody tr').each((_, el) => {
       const row = this.$(el);
       const cells = row.find('td');
-      const useText = this.cleanText(cells.eq(1).text());
+      const useText = this.cleanText(row.find('td.mod-use').text());
+      const useMatch = useText.match(/\((\d+)\)\s*(\d+(?:\.\d+)?)%/);
       
       agentStats.push({
-        name: row.find('img').attr('alt') || '',
-        imageUrl: Url.normalize(row.find('img').attr('src') || ''),
+        name: row.find('td.mod-agent img').attr('alt') || '',
+        imageUrl: Url.normalize(row.find('td.mod-agent img').attr('src') || ''),
         use: useText,
-        rounds: parseInt(this.cleanText(cells.eq(2).text())),
-        rating: parseFloat(this.cleanText(cells.eq(3).text())),
-        acs: parseFloat(this.cleanText(cells.eq(4).text())),
-        kd: parseFloat(this.cleanText(cells.eq(5).text())),
-        adr: parseFloat(this.cleanText(cells.eq(6).text())),
-        kast: parseFloat(this.cleanText(cells.eq(7).text().replace('%', ''))),
-        kpr: parseFloat(this.cleanText(cells.eq(8).text())),
-        apr: parseFloat(this.cleanText(cells.eq(9).text())),
-        fkpr: parseFloat(this.cleanText(cells.eq(10).text())),
-        fdpr: parseFloat(this.cleanText(cells.eq(11).text())),
-        kills: parseInt(this.cleanText(cells.eq(12).text())),
-        deaths: parseInt(this.cleanText(cells.eq(13).text())),
-        assists: parseInt(this.cleanText(cells.eq(14).text())),
-        firstKills: parseInt(this.cleanText(cells.eq(15).text())),
-        firstDeaths: parseInt(this.cleanText(cells.eq(16).text())),
+        mapsPlayed: useMatch ? parseInt(useMatch[1]!) : 0,
+        usagePercent: useMatch ? parseFloat(useMatch[2]!) : 0,
+        rounds: this.parseNumber(cells.eq(2).text()),
+        rating: this.parseNumber(cells.eq(3).text()),
+        acs: this.parseNumber(cells.eq(4).text()),
+        kd: this.parseNumber(cells.eq(5).text()),
+        kast: this.parseNumber(cells.eq(6).text()),
+        adr: this.parseNumber(cells.eq(7).text()),
+        kpr: this.parseNumber(cells.eq(8).text()),
+        apr: this.parseNumber(cells.eq(9).text()),
+        fkfd: this.parseNumber(cells.eq(10).text()),
+        kills: this.parseNumber(cells.eq(11).text()),
+        deaths: this.parseNumber(cells.eq(12).text()),
+        assists: this.parseNumber(cells.eq(13).text()),
+        firstKills: this.parseNumber(cells.eq(14).text()),
+        firstDeaths: this.parseNumber(cells.eq(15).text()),
       });
     });
 

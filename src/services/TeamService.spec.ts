@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { ILogger } from '../core/log/ILogger';
-import { Metrics } from '../core/metrics/Metrics';
-import type { Team } from '../models/Team';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import { Metrics } from '../core/metrics/Metrics.js';
+import type { Team } from '../models/Team.js';
 
-import { TeamService } from './TeamService';
+import { TeamService } from './TeamService.js';
 
 /* ------------------------------------------------------------------------- */
 

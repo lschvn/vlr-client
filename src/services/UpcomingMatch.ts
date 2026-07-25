@@ -1,13 +1,13 @@
 import * as cheerio from 'cheerio';
-import type { IHttpClient } from '../core/http/HttpClient';
-import type { ICacheAdapter } from '../core/cache/ICacheAdapter';
-import type { ILogger } from '../core/log/ILogger';
-import type { Metrics } from '../core/metrics/Metrics';
+import type { IHttpClient } from '../core/http/HttpClient.js';
+import type { ICacheAdapter } from '../core/cache/ICacheAdapter.js';
+import type { ILogger } from '../core/log/ILogger.js';
+import type { Metrics } from '../core/metrics/Metrics.js';
 
-import type { Envelope } from '../types.d';
-import type { MatchUpcoming } from '../models/MatchUpcoming';
+import type { Envelope } from '../types.js';
+import type { MatchUpcoming } from '../models/MatchUpcoming.js';
 
-import { UpcomingMatchParser } from '../parsers/match/UpcomingMatchParser';
+import { UpcomingMatchParser } from '../parsers/match/UpcomingMatchParser.js';
 
 /**
  * Service responsible for retrieving *incoming* matches (live or upcoming)
@@ -30,11 +30,18 @@ export class UpcomingMatchService {
   /**
    * Fetch the matches list and return the structured data.
    *
-   * @param useCache  Re-use the cached value (TTL 5 min) when available.
+   * @param useCache  Re-use the cached value when available.
+   * @param ttlMs     TTL applied when storing the parsed list (default 5 min).
+   * @param cacheKeySuffix  Suffix appended to the cache key so callers with
+   *                        different TTLs do not share the same entry.
    */
-  async listIncoming(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
+  async listIncoming(
+    useCache = true,
+    ttlMs = 5 * 60_000,
+    cacheKeySuffix = '',
+  ): Promise<Envelope<MatchUpcoming[]>> {
     const t0 = performance.now();
-    const cacheKey = `${this.LISTING_URL}`;
+    const cacheKey = `${this.LISTING_URL}${cacheKeySuffix}`;
     const SHOULD_CACHE = Boolean(useCache && this.cache);
 
     try {
@@ -56,7 +63,7 @@ export class UpcomingMatchService {
       const matches = parser.parse();
 
       if (SHOULD_CACHE) {
-        this.cache!.set(cacheKey, matches, 5 * 60_000); // 5 min TTL
+        this.cache!.set(cacheKey, matches, ttlMs);
       }
 
       this.metrics.trackSuccess(performance.now() - t0);
@@ -69,5 +76,18 @@ export class UpcomingMatchService {
       this.log.error('listIncoming failed', { err });
       throw err;
     }
+  }
+
+  /**
+   * Same pipeline as {@link listIncoming} but keeps only the matches whose
+   * banner status is `LIVE`. Uses a short cache TTL (30 s) since live scores
+   * only change when the page is re-fetched.
+   */
+  async listLive(useCache = true): Promise<Envelope<MatchUpcoming[]>> {
+    const envelope = await this.listIncoming(useCache, 30_000, ':live');
+    return {
+      data: envelope.data.filter((m) => m.status === 'LIVE'),
+      info: envelope.info,
+    };
   }
 }
